@@ -1,31 +1,55 @@
 # Diagrama Entidade-Relacionamento (DER)
 
-## Entidades
-- Cliente(id, nome, email, telefone)
-- Produto(id, nome, preco, estoque)
-- Cupom(id, codigo, percentualDesconto, ativo)
-- Pedido(id, idCliente, idCupom, valorTotal)
-- ItemPedido(idPedido, idProduto, quantidade)
+## 1. Visao geral
+O DER abaixo representa as entidades persistidas e os relacionamentos logicos utilizados no projeto **Loja Online**. Embora os dados sejam armazenados em arquivos binarios, a modelagem conceitual segue a estrutura de entidades e relacionamentos.
 
-## Relacionamentos
-- Cliente 1:N Pedido
-- Pedido N:N Produto (resolvido por ItemPedido)
-- Pedido 0:1 Cupom
+## 2. Entidades do projeto
+- **Cliente**
+  - `id`
+  - `nome`
+  - `email`
+  - `telefone`
+- **Produto**
+  - `id`
+  - `nome`
+  - `preco`
+  - `estoque`
+- **Cupom**
+  - `id`
+  - `codigo`
+  - `percentualDesconto`
+  - `ativo`
+- **Pedido**
+  - `id`
+  - `idCliente`
+  - `idCupom`
+  - `valorTotal`
+- **ItemPedido** (entidade conceitual derivada da estrutura interna do pedido)
+  - `idPedido`
+  - `idProduto`
+  - `quantidade`
 
-## Regras de Integridade
-- Um pedido precisa de um cliente valido.
-- Um pedido deve possuir ao menos um item.
-- Quantidade de item deve ser > 0.
-- Estoque do produto e baixado na criacao do pedido.
-- Cupom so pode ser associado se estiver ativo.
+## 3. Relacionamentos
+- Um **Cliente** pode realizar varios **Pedidos**.
+- Um **Pedido** contem um ou varios **ItensPedido**.
+- Um **Produto** pode aparecer em varios **ItensPedido**.
+- Um **Pedido** pode ter zero ou um **Cupom** associado.
 
-## Fonte Mermaid (DER)
+## 4. Regras observadas no codigo
+- O pedido so pode ser criado se o cliente existir.
+- O pedido precisa ter produtos e quantidades validas.
+- A quantidade de cada item deve ser maior que zero.
+- O estoque do produto e reduzido no momento da criacao do pedido.
+- O cupom so pode ser associado se existir e estiver ativo.
+- Um pedido nao pode receber mais de um cupom.
+
+## 5. Codigo do diagrama em Mermaid
 ```mermaid
 erDiagram
     CLIENTE ||--o{ PEDIDO : realiza
-    PEDIDO ||--o{ ITEM_PEDIDO : contem
-    PRODUTO ||--o{ ITEM_PEDIDO : compoe
-    CUPOM o|--o{ PEDIDO : "aplicado em"
+    PEDIDO ||--|{ ITEM_PEDIDO : contem
+    PRODUTO ||--o{ ITEM_PEDIDO : participa
+    CUPOM o|--o{ PEDIDO : aplica_desconto
 
     CLIENTE {
         int id PK
@@ -61,3 +85,6 @@ erDiagram
         int quantidade
     }
 ```
+
+## 6. Observacao importante
+Na implementacao real, `ItemPedido` nao existe como classe separada. Os itens do pedido sao armazenados dentro da propria classe `Pedido`, por meio de dois vetores: um para IDs de produtos e outro para quantidades. Mesmo assim, para fins de modelagem, a entidade `ItemPedido` representa corretamente o relacionamento entre `Pedido` e `Produto`.

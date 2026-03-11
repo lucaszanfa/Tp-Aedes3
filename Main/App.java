@@ -44,10 +44,27 @@ public class App {
                 return;
             }
             sendHtml(ex, HtmlView.page("Inicio", HtmlView.nav() + """
-                <div class='card'>
-                    <h1>Sistema de Pedidos</h1>
-                    <p>CRUD de Cliente, Produto, Pedido e Cupom com persistencia binaria, cabecalho e lapide.</p>
+                <section class='hero'>
+                    <span class='eyebrow'>TP - MVC + DAO</span>
+                    <h1>Loja Online</h1>
+                    <p>Sistema web para uma loja online com cadastro de clientes, catalogo de produtos, criacao de pedidos e aplicacao de cupons, mantendo persistencia em arquivos binarios com cabecalho e exclusao logica por lapide.</p>
+                    <div class='stats'>
+                        <div class='stat'><strong>4</strong><span>modulos centrais: clientes, produtos, cupons e pedidos.</span></div>
+                        <div class='stat'><strong>MVC</strong><span>arquitetura separando interface, regras de negocio e persistencia.</span></div>
+                        <div class='stat'><strong>Binario</strong><span>armazenamento local com controle de ultimo ID e lapide.</span></div>
+                    </div>
+                </section>
+                <div class='grid'>
+                    <div class='card'>
+                        <h2>Fluxo do sistema</h2>
+                        <p class='lede'>O administrador organiza o catalogo, mantem os clientes atualizados e acompanha os pedidos ativos. O cliente realiza compras com multiplos itens e pode receber desconto via cupom.</p>
+                    </div>
+                    <div class='card'>
+                        <h2>Documentacao</h2>
+                        <p class='lede'>Os artefatos pedidos pelo professor foram organizados na pasta <code>docs</code>, incluindo descricao do problema, DCU, DER e arquitetura proposta com diagrama.</p>
+                    </div>
                 </div>
+                <p class='footer-note'>Abra cada modulo pelo menu para executar o CRUD completo e consultar os registros ativos.</p>
                 """));
         });
 
@@ -74,10 +91,16 @@ public class App {
                     .append(escape(c.getTelefone())).append("</td></tr>");
             }
             sendHtml(ex, HtmlView.page("Clientes", HtmlView.nav() + msgBox(msg) + """
-                <h1>Clientes</h1>
+                <section class='hero'>
+                  <span class='eyebrow'>Relacionamento</span>
+                  <h1>Clientes da Loja Online</h1>
+                  <p>Cadastre consumidores da plataforma, mantenha os dados atualizados e consulte os registros ativos para uso nos pedidos.</p>
+                </section>
+                <h2 class='section-title'>Gestao de clientes</h2>
                 <div class='grid'>
                   <div class='card'>
                     <h2>Cadastrar</h2>
+                    <p class='lede'>Inclui um novo cliente na base binaria para uso posterior nos pedidos.</p>
                     <form method='post' action='/clientes/create'>
                       <label>Nome</label><input name='nome' required>
                       <label>Email</label><input name='email' required>
@@ -87,6 +110,7 @@ public class App {
                   </div>
                   <div class='card'>
                     <h2>Atualizar</h2>
+                    <p class='lede'>Atualize, exclua logicamente ou consulte um cliente especifico pelo identificador.</p>
                     <form method='post' action='/clientes/update'>
                       <label>ID</label><input name='id' required>
                       <label>Nome</label><input name='nome' required>
@@ -105,7 +129,7 @@ public class App {
                   </div>
                 </div>
                 <div class='card'>
-                  <h2>Ativos</h2>
+                  <h2>Clientes ativos</h2>
                   <table><tr><th>ID</th><th>Nome</th><th>Email</th><th>Telefone</th></tr>
                 """ + rows + "</table></div>"));
         });
@@ -153,10 +177,16 @@ public class App {
                     .append(p.getEstoque()).append("</td></tr>");
             }
             sendHtml(ex, HtmlView.page("Produtos", HtmlView.nav() + msgBox(msg) + """
-                <h1>Produtos</h1>
+                <section class='hero'>
+                  <span class='eyebrow'>Catalogo</span>
+                  <h1>Produtos da Loja Online</h1>
+                  <p>Gerencie os itens do ecommerce com preco e estoque para garantir pedidos consistentes.</p>
+                </section>
+                <h2 class='section-title'>Gestao de catalogo</h2>
                 <div class='grid'>
                   <div class='card'>
                     <h2>Cadastrar</h2>
+                    <p class='lede'>Adicione novos produtos ao catalogo virtual e defina estoque inicial.</p>
                     <form method='post' action='/produtos/create'>
                       <label>Nome</label><input name='nome' required>
                       <label>Preco</label><input name='preco' required>
@@ -166,6 +196,7 @@ public class App {
                   </div>
                   <div class='card'>
                     <h2>Atualizar</h2>
+                    <p class='lede'>Use o ID para editar, excluir logicamente ou consultar um item especifico.</p>
                     <form method='post' action='/produtos/update'>
                       <label>ID</label><input name='id' required>
                       <label>Nome</label><input name='nome' required>
@@ -184,7 +215,7 @@ public class App {
                   </div>
                 </div>
                 <div class='card'>
-                  <h2>Ativos</h2>
+                  <h2>Produtos ativos</h2>
                   <table><tr><th>ID</th><th>Nome</th><th>Preco</th><th>Estoque</th></tr>
                 """ + rows + "</table></div>"));
         });
@@ -238,10 +269,16 @@ public class App {
                     .append(c.getAtivo()).append("</td></tr>");
             }
             sendHtml(ex, HtmlView.page("Cupons", HtmlView.nav() + msgBox(msg) + """
-                <h1>Cupons</h1>
+                <section class='hero'>
+                  <span class='eyebrow'>Promocoes</span>
+                  <h1>Cupons da Loja Online</h1>
+                  <p>Controle campanhas promocionais para aplicar descontos nos pedidos ja registrados no sistema.</p>
+                </section>
+                <h2 class='section-title'>Gestao de cupons</h2>
                 <div class='grid'>
                   <div class='card'>
                     <h2>Cadastrar</h2>
+                    <p class='lede'>Cadastre codigos promocionais e determine se estao liberados para uso.</p>
                     <form method='post' action='/cupons/create'>
                       <label>Codigo</label><input name='codigo' required>
                       <label>Percentual de desconto</label><input name='percentualDesconto' required>
@@ -251,6 +288,7 @@ public class App {
                   </div>
                   <div class='card'>
                     <h2>Atualizar</h2>
+                    <p class='lede'>Edite o desconto, altere o status ou consulte um cupom por ID.</p>
                     <form method='post' action='/cupons/update'>
                       <label>ID</label><input name='id' required>
                       <label>Codigo</label><input name='codigo' required>
@@ -269,7 +307,7 @@ public class App {
                   </div>
                 </div>
                 <div class='card'>
-                  <h2>Ativos</h2>
+                  <h2>Cupons ativos</h2>
                   <table><tr><th>ID</th><th>Codigo</th><th>Desconto %</th><th>Ativo</th></tr>
                 """ + rows + "</table></div>"));
         });
@@ -325,10 +363,16 @@ public class App {
             }
 
             sendHtml(ex, HtmlView.page("Pedidos", HtmlView.nav() + msgBox(msg) + """
-                <h1>Pedidos</h1>
+                <section class='hero'>
+                  <span class='eyebrow'>Operacao</span>
+                  <h1>Pedidos da Loja Online</h1>
+                  <p>Monte compras com multiplos produtos, aplique cupons e acompanhe os registros ativos armazenados em arquivo binario.</p>
+                </section>
+                <h2 class='section-title'>Gestao de pedidos</h2>
                 <div class='grid'>
                   <div class='card'>
                     <h2>Criar pedido</h2>
+                    <p class='lede'>Informe o cliente e os itens do carrinho usando listas CSV de produtos e quantidades.</p>
                     <form method='post' action='/pedidos/create'>
                       <label>ID Cliente</label><input name='idCliente' required>
                       <label>IDs dos produtos (csv)</label><input name='idsProdutos' placeholder='1,2,3' required>
@@ -338,6 +382,7 @@ public class App {
                   </div>
                   <div class='card'>
                     <h2>Associar cupom</h2>
+                    <p class='lede'>Vincule um cupom ativo a um pedido existente ou realize operacoes de consulta e exclusao logica.</p>
                     <form method='post' action='/pedidos/associar-cupom'>
                       <label>ID Pedido</label><input name='idPedido' required>
                       <label>ID Cupom</label><input name='idCupom' required>
@@ -354,7 +399,7 @@ public class App {
                   </div>
                 </div>
                 <div class='card'>
-                  <h2>Ativos</h2>
+                  <h2>Pedidos ativos</h2>
                   <table><tr><th>ID</th><th>Cliente</th><th>Cupom</th><th>Total</th><th>Itens</th></tr>
                 """ + rows + "</table></div>"));
         });

@@ -1,40 +1,49 @@
 # Diagrama de Caso de Uso (DCU)
 
-## Atores
-- Cliente: realiza pedidos.
-- Administrador: gerencia cadastros, consultas, atualizacoes e exclusoes logicas.
+## 1. Visao geral
+O Diagrama de Caso de Uso representa as funcionalidades principais da **Loja Online** conforme implementadas no projeto. O sistema possui dois atores principais: **Cliente** e **Administrador**.
 
-## Casos de Uso Implementados
-- RF01: Cadastrar Cliente.
-- RF02: Cadastrar Produto.
-- RF03: Criar Pedido (com multiplos produtos).
-- RF04: Associar Cupom a Pedido.
-- RF05: Listar registros ativos.
-- RF06: Excluir registros (lapide).
-- RF07: Atualizar registros existentes.
-- RF08: Consultar registro por identificador.
+## 2. Atores
+- **Cliente**: participa do processo de compra, sendo o titular do pedido registrado no sistema.
+- **Administrador**: utiliza a interface para cadastrar, consultar, atualizar, listar e excluir logicamente os dados do sistema.
 
-## Fonte PlantUML (DCU)
+## 3. Casos de uso representados
+- Cadastrar Cliente
+- Cadastrar Produto
+- Criar Pedido
+- Associar Cupom a Pedido
+- Listar Registros Ativos
+- Excluir Registro com Lapide
+- Atualizar Registro
+- Consultar por ID
+
+## 4. Relacao com o projeto
+No sistema implementado, o administrador realiza as operacoes pela interface web. O cliente aparece como ator de negocio porque os pedidos sao vinculados a um cliente cadastrado.
+
+## 5. Codigo do diagrama em PlantUML
 ```plantuml
 @startuml
 left to right direction
+
 actor Cliente
 actor Administrador
 
-rectangle Sistema {
+rectangle "Sistema Loja Online" {
   usecase "Cadastrar Cliente" as UC1
   usecase "Cadastrar Produto" as UC2
   usecase "Criar Pedido" as UC3
-  usecase "Associar Cupom ao Pedido" as UC4
+  usecase "Associar Cupom a Pedido" as UC4
   usecase "Listar Registros Ativos" as UC5
-  usecase "Excluir Registro (Lapide)" as UC6
+  usecase "Excluir Registro com Lapide" as UC6
   usecase "Atualizar Registro" as UC7
   usecase "Consultar por ID" as UC8
 }
 
 Cliente --> UC3
+
 Administrador --> UC1
 Administrador --> UC2
+Administrador --> UC3
 Administrador --> UC4
 Administrador --> UC5
 Administrador --> UC6
@@ -42,3 +51,8 @@ Administrador --> UC7
 Administrador --> UC8
 @enduml
 ```
+
+## 6. Observacoes
+- O caso de uso **Criar Pedido** depende da existencia previa de cliente e produto.
+- O caso de uso **Associar Cupom a Pedido** depende da existencia de um pedido e de um cupom ativo.
+- A interface atual do projeto nao implementa autenticacao; os atores representam papeis de negocio, nao contas de acesso.

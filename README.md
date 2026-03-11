@@ -1,6 +1,6 @@
-# Sistema de Pedidos - TP
+# Loja Online - TP
 
-Implementacao completa em Java seguindo MVC + DAO com persistencia em arquivos binarios com cabecalho e exclusao logica por lapide.
+Implementacao completa em Java seguindo MVC + DAO com persistencia em arquivos binarios com cabecalho e exclusao logica por lapide. O sistema foi tematizado como uma **Loja Online**.
 
 ## Estrutura
 - `Model/`: entidades de dominio e interface `Registro`.
@@ -9,15 +9,22 @@ Implementacao completa em Java seguindo MVC + DAO com persistencia em arquivos b
 - `View/`: composicao HTML/CSS.
 - `Main/`: inicializacao do servidor HTTP.
 - `Util/`: utilitarios de serializacao.
-- `docs/`: documentacao (DCU, DER, arquitetura proposta textual).
+- `docs/`: documentacao do trabalho (descricao do problema, DCU, DER e arquitetura proposta).
 - `data/`: arquivos binarios gerados em runtime.
 
-## Requisitos Atendidos
+## Requisitos atendidos
 - RF01 a RF08: CRUD, consulta, listagem de ativos, exclusao logica, pedido com multiplos produtos e associacao de cupom.
 - RNF01: sem interface por console para uso do sistema.
 - RNF02: interface minima HTML/CSS.
 - RNF03: persistencia binaria com cabecalho e lapide.
 - RNF04: documentacao entregue.
+
+## Documentacao
+- `docs/DescricaoProblema.md`
+- `docs/DCU.md`
+- `docs/DER.md`
+- `docs/ArquiteturaProposta.md`
+- `docs/README.md`
 
 ## Regra Extra de Strings
 Foi implementado em `Util/BinaryStringIO.java`:
