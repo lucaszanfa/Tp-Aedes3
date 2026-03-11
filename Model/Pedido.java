@@ -1,33 +1,34 @@
 package Model;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 
-public class Pedido {
+public class Pedido implements Registro {
 
     private int id;
     private int idCliente;
-    private int idCupom;      // -1 = sem cupom
+    private int idCupom;
     private double valorTotal;
-
     private int[] idsProdutos;
     private int[] quantidades;
 
     public Pedido() {
-        idCupom = -1;
-        idsProdutos = new int[0];
-        quantidades = new int[0];
+        this.idCupom = -1;
+        this.idsProdutos = new int[0];
+        this.quantidades = new int[0];
     }
 
     public Pedido(int id, int idCliente, int[] idsProdutos, int[] quantidades, int idCupom, double valorTotal) {
         this.id = id;
         this.idCliente = idCliente;
-        this.idsProdutos = idsProdutos;
-        this.quantidades = quantidades;
+        this.idsProdutos = idsProdutos == null ? new int[0] : idsProdutos;
+        this.quantidades = quantidades == null ? new int[0] : quantidades;
         this.idCupom = idCupom;
         this.valorTotal = valorTotal;
     }
-
-    // GETTERS E SETTERS
 
     public int getId() {
         return id;
@@ -66,7 +67,7 @@ public class Pedido {
     }
 
     public void setIdsProdutos(int[] idsProdutos) {
-        this.idsProdutos = idsProdutos;
+        this.idsProdutos = idsProdutos == null ? new int[0] : idsProdutos;
     }
 
     public int[] getQuantidades() {
@@ -74,11 +75,10 @@ public class Pedido {
     }
 
     public void setQuantidades(int[] quantidades) {
-        this.quantidades = quantidades;
+        this.quantidades = quantidades == null ? new int[0] : quantidades;
     }
 
-    // SERIALIZAÇÃO (objeto -> bytes)
-
+    @Override
     public byte[] toByteArray() throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream dos = new DataOutputStream(baos);
@@ -88,11 +88,8 @@ public class Pedido {
         dos.writeInt(idCupom);
         dos.writeDouble(valorTotal);
 
-        // quantidade de itens no pedido
-        int n = (idsProdutos == null) ? 0 : idsProdutos.length;
+        int n = idsProdutos == null ? 0 : idsProdutos.length;
         dos.writeInt(n);
-
-        // salva pares (idProduto, quantidade)
         for (int i = 0; i < n; i++) {
             dos.writeInt(idsProdutos[i]);
             dos.writeInt(quantidades[i]);
@@ -101,8 +98,7 @@ public class Pedido {
         return baos.toByteArray();
     }
 
-    // DESSERIALIZAÇÃO (bytes -> objeto)
-
+    @Override
     public void fromByteArray(byte[] ba) throws IOException {
         ByteArrayInputStream bais = new ByteArrayInputStream(ba);
         DataInputStream dis = new DataInputStream(bais);
@@ -115,7 +111,6 @@ public class Pedido {
         int n = dis.readInt();
         idsProdutos = new int[n];
         quantidades = new int[n];
-
         for (int i = 0; i < n; i++) {
             idsProdutos[i] = dis.readInt();
             quantidades[i] = dis.readInt();
@@ -124,18 +119,21 @@ public class Pedido {
 
     @Override
     public String toString() {
-        String s = "Pedido [id=" + id +
-                   ", idCliente=" + idCliente +
-                   ", idCupom=" + idCupom +
-                   ", valorTotal=" + valorTotal +
-                   ", itens=";
+        StringBuilder sb = new StringBuilder();
+        sb.append("Pedido [id=").append(id)
+            .append(", idCliente=").append(idCliente)
+            .append(", idCupom=").append(idCupom)
+            .append(", valorTotal=").append(valorTotal)
+            .append(", itens=");
 
         for (int i = 0; i < idsProdutos.length; i++) {
-            s += "(" + idsProdutos[i] + " x" + quantidades[i] + ")";
-            if (i < idsProdutos.length - 1) s += ", ";
+            sb.append("(").append(idsProdutos[i]).append(" x").append(quantidades[i]).append(")");
+            if (i < idsProdutos.length - 1) {
+                sb.append(", ");
+            }
         }
 
-        s += "]";
-        return s;
+        sb.append("]");
+        return sb.toString();
     }
 }

@@ -1,13 +1,14 @@
 package Model;
 
+import Util.BinaryStringIO;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-public class Cupom {
-    
+public class Cupom implements Registro {
+
     private int id;
     private String codigo;
     private double percentualDesconto;
@@ -55,24 +56,26 @@ public class Cupom {
         return ativo;
     }
 
+    @Override
     public byte[] toByteArray() throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream dos = new DataOutputStream(baos);
 
         dos.writeInt(id);
-        dos.writeUTF(codigo);
+        BinaryStringIO.writeStringBlock(dos, codigo);
         dos.writeDouble(percentualDesconto);
         dos.writeBoolean(ativo);
-
         return baos.toByteArray();
     }
 
+    @Override
     public void fromByteArray(byte[] ba) throws IOException {
         ByteArrayInputStream bais = new ByteArrayInputStream(ba);
         DataInputStream dis = new DataInputStream(bais);
 
         id = dis.readInt();
-        codigo = dis.readUTF();
+        String[] values = BinaryStringIO.readStringBlock(dis);
+        codigo = values.length > 0 ? values[0] : "";
         percentualDesconto = dis.readDouble();
         ativo = dis.readBoolean();
     }
@@ -80,8 +83,8 @@ public class Cupom {
     @Override
     public String toString() {
         return "Cupom [id=" + id +
-        ", codigo=" + codigo +
-        ", percentualdesconto=" + percentualDesconto +
-        ", ativo=" + ativo + "]";
+            ", codigo=" + codigo +
+            ", percentualDesconto=" + percentualDesconto +
+            ", ativo=" + ativo + "]";
     }
 }
