@@ -1,32 +1,41 @@
 package Model;
 
+import Util.BinaryStringIO;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.time.LocalDate;
 
 public class Pedido implements Registro {
 
     private int id;
     private int idCliente;
     private int idCupom;
+    private String dataPedido;
     private double valorTotal;
     private int[] idsProdutos;
     private int[] quantidades;
 
     public Pedido() {
         this.idCupom = -1;
+        this.dataPedido = "";
         this.idsProdutos = new int[0];
         this.quantidades = new int[0];
     }
 
     public Pedido(int id, int idCliente, int[] idsProdutos, int[] quantidades, int idCupom, double valorTotal) {
+        this(id, idCliente, idsProdutos, quantidades, idCupom, LocalDate.now().toString(), valorTotal);
+    }
+
+    public Pedido(int id, int idCliente, int[] idsProdutos, int[] quantidades, int idCupom, String dataPedido, double valorTotal) {
         this.id = id;
         this.idCliente = idCliente;
         this.idsProdutos = idsProdutos == null ? new int[0] : idsProdutos;
         this.quantidades = quantidades == null ? new int[0] : quantidades;
         this.idCupom = idCupom;
+        this.dataPedido = dataPedido == null ? "" : dataPedido;
         this.valorTotal = valorTotal;
     }
 
@@ -62,6 +71,14 @@ public class Pedido implements Registro {
         this.valorTotal = valorTotal;
     }
 
+    public String getDataPedido() {
+        return dataPedido;
+    }
+
+    public void setDataPedido(String dataPedido) {
+        this.dataPedido = dataPedido == null ? "" : dataPedido;
+    }
+
     public int[] getIdsProdutos() {
         return idsProdutos;
     }
@@ -95,6 +112,8 @@ public class Pedido implements Registro {
             dos.writeInt(quantidades[i]);
         }
 
+        BinaryStringIO.writeStringBlock(dos, dataPedido);
+
         return baos.toByteArray();
     }
 
@@ -115,6 +134,13 @@ public class Pedido implements Registro {
             idsProdutos[i] = dis.readInt();
             quantidades[i] = dis.readInt();
         }
+
+        if (dis.available() > 0) {
+            String[] values = BinaryStringIO.readStringBlock(dis);
+            dataPedido = values.length > 0 ? values[0] : "";
+        } else {
+            dataPedido = "";
+        }
     }
 
     @Override
@@ -123,6 +149,7 @@ public class Pedido implements Registro {
         sb.append("Pedido [id=").append(id)
             .append(", idCliente=").append(idCliente)
             .append(", idCupom=").append(idCupom)
+            .append(", dataPedido=").append(dataPedido)
             .append(", valorTotal=").append(valorTotal)
             .append(", itens=");
 

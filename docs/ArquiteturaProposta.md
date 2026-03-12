@@ -36,8 +36,8 @@ As responsabilidades foram separadas da seguinte forma:
 - `data/`
   - `clientes.db`
   - `produtos.db`
-  - `pedidos.db`
   - `cupons.db`
+  - `pedidos.db`
 
 ## 3. Persistencia em arquivos binarios
 Cada arquivo binario possui:
@@ -63,11 +63,25 @@ Formato logico de armazenamento:
 - A atualizacao pode ocorrer no mesmo espaco ou com realocacao no final do arquivo.
 - O pedido valida a existencia do cliente.
 - O pedido valida a existencia dos produtos e o estoque disponivel.
+- O pedido exige listas de produtos e quantidades com mesmo tamanho.
 - O pedido reduz o estoque no momento da compra.
 - O cupom so pode ser associado se estiver ativo.
+- O pedido nao aceita um segundo cupom.
 - O valor total do pedido e recalculado com desconto na associacao do cupom.
 
-## 5. Diagrama de arquitetura em camadas
+## 5. Interface e rotas principais
+- `GET /`: pagina inicial.
+- `GET /clientes`: tela de clientes.
+- `POST /clientes/create`, `/clientes/update`, `/clientes/delete`, `/clientes/find`.
+- `GET /produtos`: tela de produtos.
+- `POST /produtos/create`, `/produtos/update`, `/produtos/delete`, `/produtos/find`.
+- `GET /cupons`: tela de cupons.
+- `POST /cupons/create`, `/cupons/update`, `/cupons/delete`, `/cupons/find`.
+- `GET /pedidos`: tela de pedidos.
+- `POST /pedidos/create`, `/pedidos/associar-cupom`, `/pedidos/delete`, `/pedidos/find`.
+- `GET /styles.css`: folha de estilo servida pela aplicacao.
+
+## 6. Diagrama de arquitetura em camadas
 ```mermaid
 flowchart TD
     U[Administrador / Cliente] --> V[View<br/>HTML + CSS]
@@ -94,7 +108,7 @@ flowchart TD
     D4 --> F4[(pedidos.db)]
 ```
 
-## 6. Fluxo geral da aplicacao
+## 7. Fluxo geral da aplicacao
 1. O usuario acessa a interface pelo navegador.
 2. O `Main.App` recebe a requisicao HTTP.
 3. A rota chama o controller correspondente.
@@ -102,5 +116,10 @@ flowchart TD
 5. O DAO realiza a leitura ou escrita no arquivo binario.
 6. A resposta HTML e devolvida ao navegador.
 
-## 7. Justificativa da arquitetura
+## 8. Execucao
+- Classe principal: `Main.App`
+- Endereco local: `http://localhost:18080`
+- Requisito de ambiente: mesma versao de `java` e `javac`, preferencialmente Java 25 ou compativel com o fonte atual.
+
+## 9. Justificativa da arquitetura
 O uso de **MVC + DAO** facilita a organizacao do projeto, separando interface, regras e persistencia. Isso torna o codigo mais legivel, mais facil de manter e aderente ao que foi pedido no trabalho.

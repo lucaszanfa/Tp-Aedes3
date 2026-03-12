@@ -6,22 +6,28 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 
 public class Cliente implements Registro {
 
     private int id;
     private String nome;
     private String email;
-    private String telefone;
+    private String[] telefones;
 
     public Cliente() {
+        this.telefones = new String[0];
     }
 
     public Cliente(int id, String nome, String email, String telefone) {
+        this(id, nome, email, new String[] { telefone });
+    }
+
+    public Cliente(int id, String nome, String email, String[] telefones) {
         this.id = id;
         this.nome = nome;
         this.email = email;
-        this.telefone = telefone;
+        this.telefones = telefones == null ? new String[0] : telefones;
     }
 
     public int getId() {
@@ -49,11 +55,19 @@ public class Cliente implements Registro {
     }
 
     public String getTelefone() {
-        return telefone;
+        return String.join(", ", telefones);
     }
 
     public void setTelefone(String telefone) {
-        this.telefone = telefone;
+        setTelefones(new String[] { telefone });
+    }
+
+    public String[] getTelefones() {
+        return telefones;
+    }
+
+    public void setTelefones(String[] telefones) {
+        this.telefones = telefones == null ? new String[0] : telefones;
     }
 
     @Override
@@ -62,7 +76,11 @@ public class Cliente implements Registro {
         DataOutputStream dos = new DataOutputStream(baos);
 
         dos.writeInt(id);
-        BinaryStringIO.writeStringBlock(dos, nome, email, telefone);
+        String[] values = new String[2 + telefones.length];
+        values[0] = nome;
+        values[1] = email;
+        System.arraycopy(telefones, 0, values, 2, telefones.length);
+        BinaryStringIO.writeStringBlock(dos, values);
         return baos.toByteArray();
     }
 
@@ -75,7 +93,11 @@ public class Cliente implements Registro {
         String[] values = BinaryStringIO.readStringBlock(dis);
         nome = values.length > 0 ? values[0] : "";
         email = values.length > 1 ? values[1] : "";
-        telefone = values.length > 2 ? values[2] : "";
+        if (values.length > 2) {
+            telefones = Arrays.copyOfRange(values, 2, values.length);
+        } else {
+            telefones = new String[0];
+        }
     }
 
     @Override
@@ -83,6 +105,6 @@ public class Cliente implements Registro {
         return "Cliente [id=" + id +
             ", nome=" + nome +
             ", email=" + email +
-            ", telefone=" + telefone + "]";
+            ", telefones=" + Arrays.toString(telefones) + "]";
     }
 }

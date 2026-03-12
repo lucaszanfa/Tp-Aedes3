@@ -9,7 +9,8 @@ O Diagrama de Caso de Uso representa as funcionalidades principais da **Loja Onl
 
 ## 3. Casos de uso representados
 - Cadastrar Cliente
-- Cadastrar Produto
+- Gerenciar Produto
+- Gerenciar Cupom
 - Criar Pedido
 - Associar Cupom a Pedido
 - Listar Registros Ativos
@@ -30,16 +31,17 @@ actor Administrador
 
 rectangle "Sistema Loja Online" {
   usecase "Cadastrar Cliente" as UC1
-  usecase "Cadastrar Produto" as UC2
-  usecase "Criar Pedido" as UC3
-  usecase "Associar Cupom a Pedido" as UC4
-  usecase "Listar Registros Ativos" as UC5
-  usecase "Excluir Registro com Lapide" as UC6
-  usecase "Atualizar Registro" as UC7
-  usecase "Consultar por ID" as UC8
+  usecase "Gerenciar Produto" as UC2
+  usecase "Gerenciar Cupom" as UC3
+  usecase "Criar Pedido" as UC4
+  usecase "Associar Cupom a Pedido" as UC5
+  usecase "Listar Registros Ativos" as UC6
+  usecase "Excluir Registro com Lapide" as UC7
+  usecase "Atualizar Registro" as UC8
+  usecase "Consultar por ID" as UC9
 }
 
-Cliente --> UC3
+Cliente --> UC4
 
 Administrador --> UC1
 Administrador --> UC2
@@ -49,10 +51,12 @@ Administrador --> UC5
 Administrador --> UC6
 Administrador --> UC7
 Administrador --> UC8
+Administrador --> UC9
 @enduml
 ```
 
 ## 6. Observacoes
 - O caso de uso **Criar Pedido** depende da existencia previa de cliente e produto.
 - O caso de uso **Associar Cupom a Pedido** depende da existencia de um pedido e de um cupom ativo.
+- O gerenciamento de produto e cupom representa o conjunto de operacoes de cadastro, atualizacao, consulta, listagem e exclusao logica disponiveis na interface.
 - A interface atual do projeto nao implementa autenticacao; os atores representam papeis de negocio, nao contas de acesso.

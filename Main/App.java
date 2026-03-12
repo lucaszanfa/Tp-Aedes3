@@ -17,6 +17,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ByteArrayOutputStream;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -37,35 +38,34 @@ public class App {
         CupomController cupomController = new CupomController(cupomDAO);
         PedidoController pedidoController = new PedidoController(pedidoDAO, clienteDAO, produtoDAO, cupomDAO);
 
-        HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
+        HttpServer server = HttpServer.create(new InetSocketAddress(18080), 0);
         server.createContext("/", ex -> {
             if (!"GET".equals(ex.getRequestMethod())) {
                 sendText(ex, 405, "Metodo nao permitido");
                 return;
             }
-            sendHtml(ex, HtmlView.page("Inicio", HtmlView.nav() + """
-                <section class='hero'>
-                    <span class='eyebrow'>TP - MVC + DAO</span>
-                    <h1>Loja Online</h1>
-                    <p>Sistema web para uma loja online com cadastro de clientes, catalogo de produtos, criacao de pedidos e aplicacao de cupons, mantendo persistencia em arquivos binarios com cabecalho e exclusao logica por lapide.</p>
-                    <div class='stats'>
-                        <div class='stat'><strong>4</strong><span>modulos centrais: clientes, produtos, cupons e pedidos.</span></div>
-                        <div class='stat'><strong>MVC</strong><span>arquitetura separando interface, regras de negocio e persistencia.</span></div>
-                        <div class='stat'><strong>Binario</strong><span>armazenamento local com controle de ultimo ID e lapide.</span></div>
-                    </div>
-                </section>
-                <div class='grid'>
-                    <div class='card'>
-                        <h2>Fluxo do sistema</h2>
-                        <p class='lede'>O administrador organiza o catalogo, mantem os clientes atualizados e acompanha os pedidos ativos. O cliente realiza compras com multiplos itens e pode receber desconto via cupom.</p>
-                    </div>
-                    <div class='card'>
-                        <h2>Documentacao</h2>
-                        <p class='lede'>Os artefatos pedidos pelo professor foram organizados na pasta <code>docs</code>, incluindo descricao do problema, DCU, DER e arquitetura proposta com diagrama.</p>
-                    </div>
-                </div>
-                <p class='footer-note'>Abra cada modulo pelo menu para executar o CRUD completo e consultar os registros ativos.</p>
-                """));
+            sendHtml(ex, HtmlView.page("Inicio", HtmlView.nav()
+                + "<section class='hero'>"
+                + "<span class='eyebrow'>TP - MVC + DAO</span>"
+                + "<h1>Loja Online</h1>"
+                + "<p>Sistema web para uma loja online com cadastro de clientes, catalogo de produtos, criacao de pedidos e aplicacao de cupons, mantendo persistencia em arquivos binarios com cabecalho e exclusao logica por lapide.</p>"
+                + "<div class='stats'>"
+                + "<div class='stat'><strong>4</strong><span>modulos centrais: clientes, produtos, cupons e pedidos.</span></div>"
+                + "<div class='stat'><strong>MVC</strong><span>arquitetura separando interface, regras de negocio e persistencia.</span></div>"
+                + "<div class='stat'><strong>Binario</strong><span>armazenamento local com controle de ultimo ID e lapide.</span></div>"
+                + "</div>"
+                + "</section>"
+                + "<div class='grid'>"
+                + "<div class='card'>"
+                + "<h2>Fluxo do sistema</h2>"
+                + "<p class='lede'>O administrador organiza o catalogo, mantem os clientes atualizados e acompanha os pedidos ativos. O cliente realiza compras com multiplos itens e pode receber desconto via cupom.</p>"
+                + "</div>"
+                + "<div class='card'>"
+                + "<h2>Documentacao</h2>"
+                + "<p class='lede'>Os artefatos pedidos pelo professor foram organizados na pasta <code>docs</code>, incluindo descricao do problema, DCU, DER e arquitetura proposta com diagrama.</p>"
+                + "</div>"
+                + "</div>"
+                + "<p class='footer-note'>Abra cada modulo pelo menu para executar o CRUD completo e consultar os registros ativos.</p>"));
         });
 
         server.createContext("/styles.css", ex -> {
@@ -90,57 +90,57 @@ public class App {
                     .append(escape(c.getEmail())).append("</td><td>")
                     .append(escape(c.getTelefone())).append("</td></tr>");
             }
-            sendHtml(ex, HtmlView.page("Clientes", HtmlView.nav() + msgBox(msg) + """
-                <section class='hero'>
-                  <span class='eyebrow'>Relacionamento</span>
-                  <h1>Clientes da Loja Online</h1>
-                  <p>Cadastre consumidores da plataforma, mantenha os dados atualizados e consulte os registros ativos para uso nos pedidos.</p>
-                </section>
-                <h2 class='section-title'>Gestao de clientes</h2>
-                <div class='grid'>
-                  <div class='card'>
-                    <h2>Cadastrar</h2>
-                    <p class='lede'>Inclui um novo cliente na base binaria para uso posterior nos pedidos.</p>
-                    <form method='post' action='/clientes/create'>
-                      <label>Nome</label><input name='nome' required>
-                      <label>Email</label><input name='email' required>
-                      <label>Telefone</label><input name='telefone' required>
-                      <button type='submit'>Salvar</button>
-                    </form>
-                  </div>
-                  <div class='card'>
-                    <h2>Atualizar</h2>
-                    <p class='lede'>Atualize, exclua logicamente ou consulte um cliente especifico pelo identificador.</p>
-                    <form method='post' action='/clientes/update'>
-                      <label>ID</label><input name='id' required>
-                      <label>Nome</label><input name='nome' required>
-                      <label>Email</label><input name='email' required>
-                      <label>Telefone</label><input name='telefone' required>
-                      <button type='submit'>Atualizar</button>
-                    </form>
-                    <form method='post' action='/clientes/delete'>
-                      <label>ID para excluir</label><input name='id' required>
-                      <button type='submit'>Excluir (Lapide)</button>
-                    </form>
-                    <form method='post' action='/clientes/find'>
-                      <label>ID para consultar</label><input name='id' required>
-                      <button type='submit'>Consultar por ID</button>
-                    </form>
-                  </div>
-                </div>
-                <div class='card'>
-                  <h2>Clientes ativos</h2>
-                  <table><tr><th>ID</th><th>Nome</th><th>Email</th><th>Telefone</th></tr>
-                """ + rows + "</table></div>"));
+            sendHtml(ex, HtmlView.page("Clientes", HtmlView.nav() + msgBox(msg)
+                + "<section class='hero'>"
+                + "<span class='eyebrow'>Relacionamento</span>"
+                + "<h1>Clientes da Loja Online</h1>"
+                + "<p>Cadastre consumidores da plataforma, mantenha os dados atualizados e consulte os registros ativos para uso nos pedidos.</p>"
+                + "</section>"
+                + "<h2 class='section-title'>Gestao de clientes</h2>"
+                + "<div class='grid'>"
+                + "<div class='card'>"
+                + "<h2>Cadastrar</h2>"
+                + "<p class='lede'>Inclui um novo cliente na base binaria para uso posterior nos pedidos.</p>"
+                + "<form method='post' action='/clientes/create'>"
+                + "<label>Nome</label><input name='nome' required>"
+                + "<label>Email</label><input name='email' required>"
+                + "<label>Telefones (csv)</label><input name='telefones' placeholder='11999999999, 11888888888' required>"
+                + "<button type='submit'>Salvar</button>"
+                + "</form>"
+                + "</div>"
+                + "<div class='card'>"
+                + "<h2>Atualizar</h2>"
+                + "<p class='lede'>Atualize, exclua logicamente ou consulte um cliente especifico pelo identificador.</p>"
+                + "<form method='post' action='/clientes/update'>"
+                + "<label>ID</label><input name='id' required>"
+                + "<label>Nome</label><input name='nome' required>"
+                + "<label>Email</label><input name='email' required>"
+                + "<label>Telefones (csv)</label><input name='telefones' placeholder='11999999999, 11888888888' required>"
+                + "<button type='submit'>Atualizar</button>"
+                + "</form>"
+                + "<form method='post' action='/clientes/delete'>"
+                + "<label>ID para excluir</label><input name='id' required>"
+                + "<button type='submit'>Excluir (Lapide)</button>"
+                + "</form>"
+                + "<form method='post' action='/clientes/find'>"
+                + "<label>ID para consultar</label><input name='id' required>"
+                + "<button type='submit'>Consultar por ID</button>"
+                + "</form>"
+                + "</div>"
+                + "</div>"
+                + "<div class='card'>"
+                + "<h2>Clientes ativos</h2>"
+                + "<table><tr><th>ID</th><th>Nome</th><th>Email</th><th>Telefone</th></tr>"
+                + rows + "</table></div>"));
         });
 
         server.createContext("/clientes/create", ex -> handlePost(ex, "/clientes", data -> {
-            clienteController.cadastrar(data.get("nome"), data.get("email"), data.get("telefone"));
+            clienteController.cadastrar(data.get("nome"), data.get("email"), data.get("telefones"));
             return "Cliente cadastrado.";
         }));
         server.createContext("/clientes/update", ex -> handlePost(ex, "/clientes", data -> {
             int id = parseInt(data.get("id"), "ID do cliente");
-            Cliente c = new Cliente(id, data.get("nome"), data.get("email"), data.get("telefone"));
+            Cliente c = new Cliente(id, data.get("nome"), data.get("email"), parseCsvText(data.get("telefones"), "Telefones"));
             if (!clienteController.atualizar(c)) {
                 throw new IllegalArgumentException("Cliente nao encontrado.");
             }
@@ -176,48 +176,48 @@ public class App {
                     .append(p.getPreco()).append("</td><td>")
                     .append(p.getEstoque()).append("</td></tr>");
             }
-            sendHtml(ex, HtmlView.page("Produtos", HtmlView.nav() + msgBox(msg) + """
-                <section class='hero'>
-                  <span class='eyebrow'>Catalogo</span>
-                  <h1>Produtos da Loja Online</h1>
-                  <p>Gerencie os itens do ecommerce com preco e estoque para garantir pedidos consistentes.</p>
-                </section>
-                <h2 class='section-title'>Gestao de catalogo</h2>
-                <div class='grid'>
-                  <div class='card'>
-                    <h2>Cadastrar</h2>
-                    <p class='lede'>Adicione novos produtos ao catalogo virtual e defina estoque inicial.</p>
-                    <form method='post' action='/produtos/create'>
-                      <label>Nome</label><input name='nome' required>
-                      <label>Preco</label><input name='preco' required>
-                      <label>Estoque</label><input name='estoque' required>
-                      <button type='submit'>Salvar</button>
-                    </form>
-                  </div>
-                  <div class='card'>
-                    <h2>Atualizar</h2>
-                    <p class='lede'>Use o ID para editar, excluir logicamente ou consultar um item especifico.</p>
-                    <form method='post' action='/produtos/update'>
-                      <label>ID</label><input name='id' required>
-                      <label>Nome</label><input name='nome' required>
-                      <label>Preco</label><input name='preco' required>
-                      <label>Estoque</label><input name='estoque' required>
-                      <button type='submit'>Atualizar</button>
-                    </form>
-                    <form method='post' action='/produtos/delete'>
-                      <label>ID para excluir</label><input name='id' required>
-                      <button type='submit'>Excluir (Lapide)</button>
-                    </form>
-                    <form method='post' action='/produtos/find'>
-                      <label>ID para consultar</label><input name='id' required>
-                      <button type='submit'>Consultar por ID</button>
-                    </form>
-                  </div>
-                </div>
-                <div class='card'>
-                  <h2>Produtos ativos</h2>
-                  <table><tr><th>ID</th><th>Nome</th><th>Preco</th><th>Estoque</th></tr>
-                """ + rows + "</table></div>"));
+            sendHtml(ex, HtmlView.page("Produtos", HtmlView.nav() + msgBox(msg)
+                + "<section class='hero'>"
+                + "<span class='eyebrow'>Catalogo</span>"
+                + "<h1>Produtos da Loja Online</h1>"
+                + "<p>Gerencie os itens do ecommerce com preco e estoque para garantir pedidos consistentes.</p>"
+                + "</section>"
+                + "<h2 class='section-title'>Gestao de catalogo</h2>"
+                + "<div class='grid'>"
+                + "<div class='card'>"
+                + "<h2>Cadastrar</h2>"
+                + "<p class='lede'>Adicione novos produtos ao catalogo virtual e defina estoque inicial.</p>"
+                + "<form method='post' action='/produtos/create'>"
+                + "<label>Nome</label><input name='nome' required>"
+                + "<label>Preco</label><input name='preco' required>"
+                + "<label>Estoque</label><input name='estoque' required>"
+                + "<button type='submit'>Salvar</button>"
+                + "</form>"
+                + "</div>"
+                + "<div class='card'>"
+                + "<h2>Atualizar</h2>"
+                + "<p class='lede'>Use o ID para editar, excluir logicamente ou consultar um item especifico.</p>"
+                + "<form method='post' action='/produtos/update'>"
+                + "<label>ID</label><input name='id' required>"
+                + "<label>Nome</label><input name='nome' required>"
+                + "<label>Preco</label><input name='preco' required>"
+                + "<label>Estoque</label><input name='estoque' required>"
+                + "<button type='submit'>Atualizar</button>"
+                + "</form>"
+                + "<form method='post' action='/produtos/delete'>"
+                + "<label>ID para excluir</label><input name='id' required>"
+                + "<button type='submit'>Excluir (Lapide)</button>"
+                + "</form>"
+                + "<form method='post' action='/produtos/find'>"
+                + "<label>ID para consultar</label><input name='id' required>"
+                + "<button type='submit'>Consultar por ID</button>"
+                + "</form>"
+                + "</div>"
+                + "</div>"
+                + "<div class='card'>"
+                + "<h2>Produtos ativos</h2>"
+                + "<table><tr><th>ID</th><th>Nome</th><th>Preco</th><th>Estoque</th></tr>"
+                + rows + "</table></div>"));
         });
 
         server.createContext("/produtos/create", ex -> handlePost(ex, "/produtos", data -> {
@@ -268,48 +268,48 @@ public class App {
                     .append(c.getPercentualDesconto()).append("</td><td>")
                     .append(c.getAtivo()).append("</td></tr>");
             }
-            sendHtml(ex, HtmlView.page("Cupons", HtmlView.nav() + msgBox(msg) + """
-                <section class='hero'>
-                  <span class='eyebrow'>Promocoes</span>
-                  <h1>Cupons da Loja Online</h1>
-                  <p>Controle campanhas promocionais para aplicar descontos nos pedidos ja registrados no sistema.</p>
-                </section>
-                <h2 class='section-title'>Gestao de cupons</h2>
-                <div class='grid'>
-                  <div class='card'>
-                    <h2>Cadastrar</h2>
-                    <p class='lede'>Cadastre codigos promocionais e determine se estao liberados para uso.</p>
-                    <form method='post' action='/cupons/create'>
-                      <label>Codigo</label><input name='codigo' required>
-                      <label>Percentual de desconto</label><input name='percentualDesconto' required>
-                      <label>Ativo (true/false)</label><input name='ativo' required>
-                      <button type='submit'>Salvar</button>
-                    </form>
-                  </div>
-                  <div class='card'>
-                    <h2>Atualizar</h2>
-                    <p class='lede'>Edite o desconto, altere o status ou consulte um cupom por ID.</p>
-                    <form method='post' action='/cupons/update'>
-                      <label>ID</label><input name='id' required>
-                      <label>Codigo</label><input name='codigo' required>
-                      <label>Percentual de desconto</label><input name='percentualDesconto' required>
-                      <label>Ativo (true/false)</label><input name='ativo' required>
-                      <button type='submit'>Atualizar</button>
-                    </form>
-                    <form method='post' action='/cupons/delete'>
-                      <label>ID para excluir</label><input name='id' required>
-                      <button type='submit'>Excluir (Lapide)</button>
-                    </form>
-                    <form method='post' action='/cupons/find'>
-                      <label>ID para consultar</label><input name='id' required>
-                      <button type='submit'>Consultar por ID</button>
-                    </form>
-                  </div>
-                </div>
-                <div class='card'>
-                  <h2>Cupons ativos</h2>
-                  <table><tr><th>ID</th><th>Codigo</th><th>Desconto %</th><th>Ativo</th></tr>
-                """ + rows + "</table></div>"));
+            sendHtml(ex, HtmlView.page("Cupons", HtmlView.nav() + msgBox(msg)
+                + "<section class='hero'>"
+                + "<span class='eyebrow'>Promocoes</span>"
+                + "<h1>Cupons da Loja Online</h1>"
+                + "<p>Controle campanhas promocionais para aplicar descontos nos pedidos ja registrados no sistema.</p>"
+                + "</section>"
+                + "<h2 class='section-title'>Gestao de cupons</h2>"
+                + "<div class='grid'>"
+                + "<div class='card'>"
+                + "<h2>Cadastrar</h2>"
+                + "<p class='lede'>Cadastre codigos promocionais e determine se estao liberados para uso.</p>"
+                + "<form method='post' action='/cupons/create'>"
+                + "<label>Codigo</label><input name='codigo' required>"
+                + "<label>Percentual de desconto</label><input name='percentualDesconto' required>"
+                + "<label>Ativo (true/false)</label><input name='ativo' required>"
+                + "<button type='submit'>Salvar</button>"
+                + "</form>"
+                + "</div>"
+                + "<div class='card'>"
+                + "<h2>Atualizar</h2>"
+                + "<p class='lede'>Edite o desconto, altere o status ou consulte um cupom por ID.</p>"
+                + "<form method='post' action='/cupons/update'>"
+                + "<label>ID</label><input name='id' required>"
+                + "<label>Codigo</label><input name='codigo' required>"
+                + "<label>Percentual de desconto</label><input name='percentualDesconto' required>"
+                + "<label>Ativo (true/false)</label><input name='ativo' required>"
+                + "<button type='submit'>Atualizar</button>"
+                + "</form>"
+                + "<form method='post' action='/cupons/delete'>"
+                + "<label>ID para excluir</label><input name='id' required>"
+                + "<button type='submit'>Excluir (Lapide)</button>"
+                + "</form>"
+                + "<form method='post' action='/cupons/find'>"
+                + "<label>ID para consultar</label><input name='id' required>"
+                + "<button type='submit'>Consultar por ID</button>"
+                + "</form>"
+                + "</div>"
+                + "</div>"
+                + "<div class='card'>"
+                + "<h2>Cupons ativos</h2>"
+                + "<table><tr><th>ID</th><th>Codigo</th><th>Desconto %</th><th>Ativo</th></tr>"
+                + rows + "</table></div>"));
         });
 
         server.createContext("/cupons/create", ex -> handlePost(ex, "/cupons", data -> {
@@ -358,50 +358,51 @@ public class App {
                 rows.append("<tr><td>").append(p.getId()).append("</td><td>")
                     .append(p.getIdCliente()).append("</td><td>")
                     .append(p.getIdCupom()).append("</td><td>")
+                    .append(escape(p.getDataPedido())).append("</td><td>")
                     .append(p.getValorTotal()).append("</td><td>")
                     .append(itensToString(p)).append("</td></tr>");
             }
 
-            sendHtml(ex, HtmlView.page("Pedidos", HtmlView.nav() + msgBox(msg) + """
-                <section class='hero'>
-                  <span class='eyebrow'>Operacao</span>
-                  <h1>Pedidos da Loja Online</h1>
-                  <p>Monte compras com multiplos produtos, aplique cupons e acompanhe os registros ativos armazenados em arquivo binario.</p>
-                </section>
-                <h2 class='section-title'>Gestao de pedidos</h2>
-                <div class='grid'>
-                  <div class='card'>
-                    <h2>Criar pedido</h2>
-                    <p class='lede'>Informe o cliente e os itens do carrinho usando listas CSV de produtos e quantidades.</p>
-                    <form method='post' action='/pedidos/create'>
-                      <label>ID Cliente</label><input name='idCliente' required>
-                      <label>IDs dos produtos (csv)</label><input name='idsProdutos' placeholder='1,2,3' required>
-                      <label>Quantidades (csv)</label><input name='quantidades' placeholder='2,1,4' required>
-                      <button type='submit'>Criar</button>
-                    </form>
-                  </div>
-                  <div class='card'>
-                    <h2>Associar cupom</h2>
-                    <p class='lede'>Vincule um cupom ativo a um pedido existente ou realize operacoes de consulta e exclusao logica.</p>
-                    <form method='post' action='/pedidos/associar-cupom'>
-                      <label>ID Pedido</label><input name='idPedido' required>
-                      <label>ID Cupom</label><input name='idCupom' required>
-                      <button type='submit'>Associar</button>
-                    </form>
-                    <form method='post' action='/pedidos/delete'>
-                      <label>ID para excluir</label><input name='id' required>
-                      <button type='submit'>Excluir (Lapide)</button>
-                    </form>
-                    <form method='post' action='/pedidos/find'>
-                      <label>ID para consultar</label><input name='id' required>
-                      <button type='submit'>Consultar por ID</button>
-                    </form>
-                  </div>
-                </div>
-                <div class='card'>
-                  <h2>Pedidos ativos</h2>
-                  <table><tr><th>ID</th><th>Cliente</th><th>Cupom</th><th>Total</th><th>Itens</th></tr>
-                """ + rows + "</table></div>"));
+            sendHtml(ex, HtmlView.page("Pedidos", HtmlView.nav() + msgBox(msg)
+                + "<section class='hero'>"
+                + "<span class='eyebrow'>Operacao</span>"
+                + "<h1>Pedidos da Loja Online</h1>"
+                + "<p>Monte compras com multiplos produtos, aplique cupons e acompanhe os registros ativos armazenados em arquivo binario.</p>"
+                + "</section>"
+                + "<h2 class='section-title'>Gestao de pedidos</h2>"
+                + "<div class='grid'>"
+                + "<div class='card'>"
+                + "<h2>Criar pedido</h2>"
+                + "<p class='lede'>Informe o cliente e os itens do carrinho usando listas CSV de produtos e quantidades.</p>"
+                + "<form method='post' action='/pedidos/create'>"
+                + "<label>ID Cliente</label><input name='idCliente' required>"
+                + "<label>IDs dos produtos (csv)</label><input name='idsProdutos' placeholder='1,2,3' required>"
+                + "<label>Quantidades (csv)</label><input name='quantidades' placeholder='2,1,4' required>"
+                + "<button type='submit'>Criar</button>"
+                + "</form>"
+                + "</div>"
+                + "<div class='card'>"
+                + "<h2>Associar cupom</h2>"
+                + "<p class='lede'>Vincule um cupom ativo a um pedido existente ou realize operacoes de consulta e exclusao logica.</p>"
+                + "<form method='post' action='/pedidos/associar-cupom'>"
+                + "<label>ID Pedido</label><input name='idPedido' required>"
+                + "<label>ID Cupom</label><input name='idCupom' required>"
+                + "<button type='submit'>Associar</button>"
+                + "</form>"
+                + "<form method='post' action='/pedidos/delete'>"
+                + "<label>ID para excluir</label><input name='id' required>"
+                + "<button type='submit'>Excluir (Lapide)</button>"
+                + "</form>"
+                + "<form method='post' action='/pedidos/find'>"
+                + "<label>ID para consultar</label><input name='id' required>"
+                + "<button type='submit'>Consultar por ID</button>"
+                + "</form>"
+                + "</div>"
+                + "</div>"
+                + "<div class='card'>"
+                + "<h2>Pedidos ativos</h2>"
+                + "<table><tr><th>ID</th><th>Cliente</th><th>Cupom</th><th>Data</th><th>Total</th><th>Itens</th></tr>"
+                + rows + "</table></div>"));
         });
 
         server.createContext("/pedidos/create", ex -> handlePost(ex, "/pedidos", data -> {
@@ -436,7 +437,7 @@ public class App {
         }));
 
         server.start();
-        System.out.println("Server rodando em: http://localhost:8080");
+        System.out.println("Server rodando em: http://localhost:18080");
     }
 
     private static String itensToString(Pedido p) {
@@ -477,6 +478,16 @@ public class App {
             out[i] = parseInt(parts[i].trim(), field);
         }
         return out;
+    }
+
+    private static String[] parseCsvText(String csv, String field) {
+        if (csv == null || csv.trim().isEmpty()) {
+            throw new IllegalArgumentException(field + " obrigatorio.");
+        }
+        return java.util.Arrays.stream(csv.split(","))
+            .map(String::trim)
+            .filter(s -> !s.isEmpty())
+            .toArray(String[]::new);
     }
 
     private static int parseInt(String value, String field) {
@@ -522,14 +533,20 @@ public class App {
 
     private static Map<String, String> body(HttpExchange ex) throws IOException {
         try (InputStream in = ex.getRequestBody()) {
-            String raw = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+            byte[] chunk = new byte[1024];
+            int read;
+            while ((read = in.read(chunk)) != -1) {
+                buffer.write(chunk, 0, read);
+            }
+            String raw = new String(buffer.toByteArray(), StandardCharsets.UTF_8);
             return parseForm(raw);
         }
     }
 
     private static Map<String, String> parseForm(String form) {
         Map<String, String> out = new HashMap<>();
-        if (form == null || form.isBlank()) {
+        if (form == null || form.trim().isEmpty()) {
             return out;
         }
         String[] pairs = form.split("&");
@@ -560,11 +577,19 @@ public class App {
     }
 
     private static String encode(String value) {
-        return java.net.URLEncoder.encode(value, StandardCharsets.UTF_8);
+        try {
+            return java.net.URLEncoder.encode(value, "UTF-8");
+        } catch (Exception e) {
+            throw new IllegalStateException("Erro ao codificar URL.", e);
+        }
     }
 
     private static String decode(String value) {
-        return URLDecoder.decode(value, StandardCharsets.UTF_8);
+        try {
+            return URLDecoder.decode(value, "UTF-8");
+        } catch (Exception e) {
+            throw new IllegalStateException("Erro ao decodificar URL.", e);
+        }
     }
 
     private interface PostAction {

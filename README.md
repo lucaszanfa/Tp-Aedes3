@@ -1,39 +1,55 @@
 # Loja Online - TP
 
-Implementacao completa em Java seguindo MVC + DAO com persistencia em arquivos binarios com cabecalho e exclusao logica por lapide. O sistema foi tematizado como uma **Loja Online**.
+Implementacao em Java seguindo MVC + DAO com persistencia em arquivos binarios, cabecalho de ultimo ID e exclusao logica por lapide. O sistema foi tematizado como uma **Loja Online** com interface web local servida por `HttpServer`.
 
 ## Estrutura
 - `Model/`: entidades de dominio e interface `Registro`.
-- `DAO/`: acesso a dados em arquivo binario.
-- `Controller/`: regras de negocio.
-- `View/`: composicao HTML/CSS.
-- `Main/`: inicializacao do servidor HTTP.
-- `Util/`: utilitarios de serializacao.
-- `docs/`: documentacao do trabalho (descricao do problema, DCU, DER e arquitetura proposta).
+- `DAO/`: persistencia em arquivo binario e fabrica de registros.
+- `Controller/`: validacoes e regras de negocio.
+- `View/`: geracao de HTML/CSS.
+- `Main/`: inicializacao do servidor HTTP e roteamento.
+- `Util/`: utilitarios de serializacao, incluindo strings multivaloradas.
+- `docs/`: documentacao do trabalho.
 - `data/`: arquivos binarios gerados em runtime.
 
-## Requisitos atendidos
-- RF01 a RF08: CRUD, consulta, listagem de ativos, exclusao logica, pedido com multiplos produtos e associacao de cupom.
-- RNF01: sem interface por console para uso do sistema.
-- RNF02: interface minima HTML/CSS.
-- RNF03: persistencia binaria com cabecalho e lapide.
-- RNF04: documentacao entregue.
+## Funcionalidades implementadas
+- Gestao de clientes: cadastrar, listar, consultar por ID, atualizar e excluir logicamente.
+- Gestao de produtos: cadastrar, listar, consultar por ID, atualizar e excluir logicamente.
+- Gestao de cupons: cadastrar, listar, consultar por ID, atualizar e excluir logicamente.
+- Gestao de pedidos: criar pedido com multiplos produtos, listar, consultar por ID, excluir logicamente e associar cupom ativo.
+- Atualizacao automatica de estoque ao criar pedidos.
+- Interface HTML/CSS unica, acessada pelo navegador.
+
+## Persistencia
+Cada arquivo `*.db` possui:
+- cabecalho `int` com o ultimo ID gerado;
+- lapide `boolean` por registro;
+- tamanho do payload `int`;
+- payload serializado da entidade.
+
+O bloco de strings foi implementado em `Util/BinaryStringIO.java` seguindo a regra:
+- `2 bytes`: quantidade de strings do bloco.
+- para cada string:
+- `4 bytes`: tamanho em bytes UTF-8.
+- `N bytes`: conteudo da string.
+
+Arquivos gerados:
+- `data/clientes.db`
+- `data/produtos.db`
+- `data/cupons.db`
+- `data/pedidos.db`
 
 ## Documentacao
 - `docs/DescricaoProblema.md`
 - `docs/DCU.md`
 - `docs/DER.md`
 - `docs/ArquiteturaProposta.md`
+- `docs/DocumentacaoCompleta.md`
 - `docs/README.md`
 
-## Regra Extra de Strings
-Foi implementado em `Util/BinaryStringIO.java`:
-- `2 bytes`: quantidade de strings do bloco.
-- para cada string:
-  - `4 bytes`: tamanho da string em bytes UTF-8;
-  - `N bytes`: conteudo da string.
-
 ## Como executar
+Use a mesma versao de `java` e `javac`. O projeto atual foi compilado com Java moderno e nao roda em Java 8.
+
 1. Compilar:
 ```powershell
 javac Main\App.java
@@ -43,4 +59,4 @@ javac Main\App.java
 java Main.App
 ```
 3. Abrir no navegador:
-`http://localhost:8080`
+`http://localhost:18080`

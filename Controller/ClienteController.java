@@ -13,11 +13,11 @@ public class ClienteController {
         this.dao = dao;
     }
 
-    public Cliente cadastrar(String nome, String email, String telefone) throws IOException {
+    public Cliente cadastrar(String nome, String email, String telefonesCsv) throws IOException {
         validarTexto(nome, "Nome");
         validarTexto(email, "Email");
-        validarTexto(telefone, "Telefone");
-        return dao.create(new Cliente(0, nome.trim(), email.trim(), telefone.trim()));
+        String[] telefones = parseTelefones(telefonesCsv);
+        return dao.create(new Cliente(0, nome.trim(), email.trim(), telefones));
     }
 
     public Cliente consultarPorId(int id) throws IOException {
@@ -35,8 +35,18 @@ public class ClienteController {
     public boolean atualizar(Cliente cliente) throws IOException {
         validarTexto(cliente.getNome(), "Nome");
         validarTexto(cliente.getEmail(), "Email");
-        validarTexto(cliente.getTelefone(), "Telefone");
+        if (cliente.getTelefones().length == 0) {
+            throw new IllegalArgumentException("Telefone obrigatorio.");
+        }
         return dao.update(cliente);
+    }
+
+    private String[] parseTelefones(String telefonesCsv) {
+        validarTexto(telefonesCsv, "Telefone(s)");
+        return java.util.Arrays.stream(telefonesCsv.split(","))
+            .map(String::trim)
+            .filter(s -> !s.isEmpty())
+            .toArray(String[]::new);
     }
 
     private void validarTexto(String value, String field) {

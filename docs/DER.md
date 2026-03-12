@@ -8,7 +8,7 @@ O DER abaixo representa as entidades persistidas e os relacionamentos logicos ut
   - `id`
   - `nome`
   - `email`
-  - `telefone`
+  - `telefones[]`
 - **Produto**
   - `id`
   - `nome`
@@ -23,6 +23,7 @@ O DER abaixo representa as entidades persistidas e os relacionamentos logicos ut
   - `id`
   - `idCliente`
   - `idCupom`
+  - `dataPedido`
   - `valorTotal`
 - **ItemPedido** (entidade conceitual derivada da estrutura interna do pedido)
   - `idPedido`
@@ -39,9 +40,11 @@ O DER abaixo representa as entidades persistidas e os relacionamentos logicos ut
 - O pedido so pode ser criado se o cliente existir.
 - O pedido precisa ter produtos e quantidades validas.
 - A quantidade de cada item deve ser maior que zero.
+- Os vetores de produtos e quantidades precisam ter o mesmo tamanho.
 - O estoque do produto e reduzido no momento da criacao do pedido.
 - O cupom so pode ser associado se existir e estiver ativo.
 - Um pedido nao pode receber mais de um cupom.
+- O valor total do pedido e recalculado quando um cupom e associado.
 
 ## 5. Codigo do diagrama em Mermaid
 ```mermaid
@@ -55,7 +58,7 @@ erDiagram
         int id PK
         string nome
         string email
-        string telefone
+        string telefones_multivalorados
     }
 
     PRODUTO {
@@ -76,6 +79,7 @@ erDiagram
         int id PK
         int idCliente FK
         int idCupom FK
+        string dataPedido
         double valorTotal
     }
 

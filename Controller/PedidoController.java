@@ -9,6 +9,7 @@ import Model.Cupom;
 import Model.Pedido;
 import Model.Produto;
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.List;
 
 public class PedidoController {
@@ -51,7 +52,7 @@ public class PedidoController {
             total += produto.getPreco() * quantidades[i];
         }
 
-        Pedido pedido = new Pedido(0, idCliente, idsProdutos, quantidades, -1, total);
+        Pedido pedido = new Pedido(0, idCliente, idsProdutos, quantidades, -1, LocalDate.now().toString(), total);
         return pedidoDAO.create(pedido);
     }
 
