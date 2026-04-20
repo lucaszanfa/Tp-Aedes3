@@ -352,6 +352,7 @@ public class App {
                 return;
             }
             String msg = query(ex).getOrDefault("msg", "");
+            String pedidosCliente = query(ex).getOrDefault("pedidosCliente", "");
             List<Pedido> pedidos = pedidoController.listarAtivos();
             StringBuilder rows = new StringBuilder();
             for (Pedido p : pedidos) {
@@ -382,6 +383,18 @@ public class App {
                 + "</form>"
                 + "</div>"
                 + "<div class='card'>"
+                + "<h2>Atualizar pedido</h2>"
+                + "<p class='lede'>Edite cliente, itens e cupom de um pedido existente com recalcule de estoque e total.</p>"
+                + "<form method='post' action='/pedidos/update'>"
+                + "<label>ID Pedido</label><input name='id' required>"
+                + "<label>ID Cliente</label><input name='idCliente' required>"
+                + "<label>IDs dos produtos (csv)</label><input name='idsProdutos' placeholder='1,2,3' required>"
+                + "<label>Quantidades (csv)</label><input name='quantidades' placeholder='2,1,4' required>"
+                + "<label>ID Cupom (-1 para nenhum)</label><input name='idCupom' value='-1' required>"
+                + "<button type='submit'>Atualizar</button>"
+                + "</form>"
+                + "</div>"
+                + "<div class='card'>"
                 + "<h2>Associar cupom</h2>"
                 + "<p class='lede'>Vincule um cupom ativo a um pedido existente ou realize operacoes de consulta e exclusao logica.</p>"
                 + "<form method='post' action='/pedidos/associar-cupom'>"
@@ -397,6 +410,15 @@ public class App {
                 + "<label>ID para consultar</label><input name='id' required>"
                 + "<button type='submit'>Consultar por ID</button>"
                 + "</form>"
+                + "</div>"
+                + "<div class='card'>"
+                + "<h2>Pedidos por cliente</h2>"
+                + "<p class='lede'>Navegue no relacionamento 1:N usando o hash extensivel do cliente para encontrar os pedidos vinculados.</p>"
+                + "<form method='post' action='/pedidos/by-cliente'>"
+                + "<label>ID Cliente</label><input name='idCliente' required>"
+                + "<button type='submit'>Listar pedidos do cliente</button>"
+                + "</form>"
+                + (!pedidosCliente.isEmpty() ? "<div class='result-block'><strong>Relacionamento 1:N:</strong><br>" + escape(pedidosCliente) + "</div>" : "")
                 + "</div>"
                 + "</div>"
                 + "<div class='card'>"
@@ -422,6 +444,17 @@ public class App {
             return "Cupom associado ao pedido.";
         }));
 
+        server.createContext("/pedidos/update", ex -> handlePost(ex, "/pedidos", data -> {
+            pedidoController.atualizarPedido(
+                parseInt(data.get("id"), "ID do pedido"),
+                parseInt(data.get("idCliente"), "ID do cliente"),
+                parseCsvInt(data.get("idsProdutos"), "IDs dos produtos"),
+                parseCsvInt(data.get("quantidades"), "Quantidades"),
+                parseInt(data.get("idCupom"), "ID do cupom")
+            );
+            return "Pedido atualizado.";
+        }));
+
         server.createContext("/pedidos/delete", ex -> handlePost(ex, "/pedidos", data -> {
             if (!pedidoController.excluir(parseInt(data.get("id"), "ID do pedido"))) {
                 throw new IllegalArgumentException("Pedido nao encontrado.");
@@ -434,6 +467,14 @@ public class App {
                 throw new IllegalArgumentException("Pedido nao encontrado.");
             }
             return p.toString();
+        }));
+        server.createContext("/pedidos/by-cliente", ex -> handlePost(ex, "/pedidos", data -> {
+            int idCliente = parseInt(data.get("idCliente"), "ID do cliente");
+            List<Pedido> pedidosDoCliente = pedidoController.listarPorCliente(idCliente);
+            String descricao = pedidosDoCliente.isEmpty()
+                ? "Nenhum pedido ativo encontrado para o cliente " + idCliente + "."
+                : pedidosDoCliente.stream().map(Pedido::toString).reduce((a, b) -> a + " | " + b).orElse("");
+            return "__REDIRECT__pedidosCliente=" + encode(descricao);
         }));
 
         server.start();
@@ -462,6 +503,10 @@ public class App {
         try {
             Map<String, String> data = body(ex);
             String msg = action.run(data);
+            if (msg.startsWith("__REDIRECT__")) {
+                redirect(ex, redirectPath + "?" + msg.substring("__REDIRECT__".length()));
+                return;
+            }
             redirect(ex, redirectPath + "?msg=" + encode(msg));
         } catch (Exception e) {
             redirect(ex, redirectPath + "?msg=" + encode("Erro: " + e.getMessage()));

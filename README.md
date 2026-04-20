@@ -1,62 +1,71 @@
 # Loja Online - TP
 
-Implementacao em Java seguindo MVC + DAO com persistencia em arquivos binarios, cabecalho de ultimo ID e exclusao logica por lapide. O sistema foi tematizado como uma **Loja Online** com interface web local servida por `HttpServer`.
+Aplicacao Java da disciplina implementada com `MVC + DAO`, persistencia em arquivos binarios, indices primarios em disco e relacionamento `Cliente 1:N Pedido` usando hash extensivel. A interface obrigatoria foi entregue em front-end web local com `HttpServer`.
 
 ## Estrutura
 - `Model/`: entidades de dominio e interface `Registro`.
-- `DAO/`: persistencia em arquivo binario e fabrica de registros.
-- `Controller/`: validacoes e regras de negocio.
-- `View/`: geracao de HTML/CSS.
-- `Main/`: inicializacao do servidor HTTP e roteamento.
-- `Util/`: utilitarios de serializacao, incluindo strings multivaloradas.
-- `docs/`: documentacao do trabalho.
-- `data/`: arquivos binarios gerados em runtime.
+- `DAO/`: acesso a dados, indice primario em hash extensivel e indice do relacionamento `1:N`.
+- `Controller/`: validacoes, regras de negocio e integridade referencial.
+- `View/`: HTML/CSS da interface web.
+- `Main/`: servidor HTTP e rotas.
+- `Util/`: serializacao binaria de strings e blocos multivalorados.
+- `docs/`: documentacao tecnica e respostas do formulario.
+- `data/`: arquivos de dados e indices persistidos entre execucoes.
 
-## Funcionalidades implementadas
-- Gestao de clientes: cadastrar, listar, consultar por ID, atualizar e excluir logicamente.
-- Gestao de produtos: cadastrar, listar, consultar por ID, atualizar e excluir logicamente.
-- Gestao de cupons: cadastrar, listar, consultar por ID, atualizar e excluir logicamente.
-- Gestao de pedidos: criar pedido com multiplos produtos, listar, consultar por ID, excluir logicamente e associar cupom ativo.
-- Atualizacao automatica de estoque ao criar pedidos.
-- Interface HTML/CSS unica, acessada pelo navegador.
+## Entregas da Fase II atendidas
+- CRUD completo para `Cliente`, `Produto`, `Cupom` e `Pedido`.
+- Indice primario persistente para todas as tabelas.
+- Relacionamento `Cliente 1:N Pedido` implementado com hash extensivel.
+- Exclusao logica por lapide.
+- Front-end web para todas as operacoes principais.
+- Validacao de entradas e mensagens de erro para casos comuns.
 
-## Persistencia
-Cada arquivo `*.db` possui:
-- cabecalho `int` com o ultimo ID gerado;
-- lapide `boolean` por registro;
-- tamanho do payload `int`;
-- payload serializado da entidade.
-
-O bloco de strings foi implementado em `Util/BinaryStringIO.java` seguindo a regra:
-- `2 bytes`: quantidade de strings do bloco.
-- para cada string:
-- `4 bytes`: tamanho em bytes UTF-8.
-- `N bytes`: conteudo da string.
-
-Arquivos gerados:
+## Persistencia em disco
+Arquivos de dados:
 - `data/clientes.db`
 - `data/produtos.db`
 - `data/cupons.db`
 - `data/pedidos.db`
 
-## Documentacao
-- `docs/DescricaoProblema.md`
-- `docs/DCU.md`
-- `docs/DER.md`
-- `docs/ArquiteturaProposta.md`
-- `docs/DocumentacaoCompleta.md`
-- `docs/README.md`
+Cada `*.db` armazena:
+- cabecalho `int` com o ultimo ID;
+- lapide `boolean`;
+- tamanho do registro `int`;
+- payload binario da entidade.
 
-## Como executar
-Use a mesma versao de `java` e `javac`. O projeto atual foi compilado com Java moderno e nao roda em Java 8.
+Arquivos de indice primario gerados automaticamente:
+- `*.pk.dir.db`: diretorio do hash extensivel.
+- `*.pk.buckets.db`: buckets do hash extensivel com pares `PK -> posicao no arquivo de dados`.
+
+Arquivos do relacionamento `Cliente -> Pedidos`:
+- `data/pedidos.db.cliente_pedidos.dir.db`
+- `data/pedidos.db.cliente_pedidos.buckets.db`
+- `data/pedidos.db.cliente_pedidos.list.db`
+
+## Como compilar e executar
+O ambiente deste workspace possui `java` em versao antiga, entao a forma mais segura e compilar com compatibilidade Java 8:
 
 1. Compilar:
 ```powershell
-javac Main\App.java
+javac --release 8 Main\App.java
 ```
-2. Rodar:
+
+2. Executar:
 ```powershell
 java Main.App
 ```
+
 3. Abrir no navegador:
 `http://localhost:18080`
+
+## Funcionalidades da interface
+- `/clientes`: CRUD e listagem de clientes.
+- `/produtos`: CRUD e listagem de produtos.
+- `/cupons`: CRUD e listagem de cupons.
+- `/pedidos`: CRUD, associacao de cupom e consulta do relacionamento `1:N` por cliente.
+
+## Documentacao
+- `docs/DocumentacaoCompleta.md`
+- `docs/ArquiteturaProposta.md`
+- `docs/DER.md`
+- `docs/DCU.md`

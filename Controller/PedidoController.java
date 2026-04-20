@@ -10,7 +10,9 @@ import Model.Pedido;
 import Model.Produto;
 import java.io.IOException;
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class PedidoController {
 
@@ -27,32 +29,10 @@ public class PedidoController {
     }
 
     public Pedido criarPedido(int idCliente, int[] idsProdutos, int[] quantidades) throws IOException {
-        validarPedido(idsProdutos, quantidades);
-
-        Cliente cliente = clienteDAO.read(idCliente);
-        if (cliente == null) {
-            throw new IllegalArgumentException("Cliente nao encontrado.");
-        }
-
-        double total = 0.0;
-        for (int i = 0; i < idsProdutos.length; i++) {
-            Produto produto = produtoDAO.read(idsProdutos[i]);
-            if (produto == null) {
-                throw new IllegalArgumentException("Produto " + idsProdutos[i] + " nao encontrado.");
-            }
-            if (quantidades[i] <= 0) {
-                throw new IllegalArgumentException("Quantidade invalida para produto " + idsProdutos[i] + ".");
-            }
-            if (produto.getEstoque() < quantidades[i]) {
-                throw new IllegalArgumentException("Estoque insuficiente para produto " + produto.getNome() + ".");
-            }
-
-            produto.setEstoque(produto.getEstoque() - quantidades[i]);
-            produtoDAO.update(produto);
-            total += produto.getPreco() * quantidades[i];
-        }
-
-        Pedido pedido = new Pedido(0, idCliente, idsProdutos, quantidades, -1, LocalDate.now().toString(), total);
+        validarCliente(idCliente);
+        Map<Integer, Integer> itens = normalizarItens(idsProdutos, quantidades);
+        double total = aplicarEstoqueParaNovoPedido(itens);
+        Pedido pedido = new Pedido(0, idCliente, mapKeys(itens), mapValues(itens), -1, LocalDate.now().toString(), total);
         return pedidoDAO.create(pedido);
     }
 
@@ -84,21 +64,128 @@ public class PedidoController {
         return pedidoDAO.listActive();
     }
 
+    public List<Pedido> listarPorCliente(int idCliente) throws IOException {
+        validarCliente(idCliente);
+        return pedidoDAO.listByCliente(idCliente);
+    }
+
     public boolean excluir(int id) throws IOException {
         return pedidoDAO.delete(id);
     }
 
-    public boolean atualizar(Pedido pedido) throws IOException {
-        validarPedido(pedido.getIdsProdutos(), pedido.getQuantidades());
-        if (clienteDAO.read(pedido.getIdCliente()) == null) {
-            throw new IllegalArgumentException("Cliente do pedido nao existe.");
+    public boolean atualizarPedido(int idPedido, int idCliente, int[] idsProdutos, int[] quantidades, int idCupom) throws IOException {
+        Pedido atual = pedidoDAO.read(idPedido);
+        if (atual == null) {
+            throw new IllegalArgumentException("Pedido nao encontrado.");
         }
-        return pedidoDAO.update(pedido);
+
+        validarCliente(idCliente);
+        Map<Integer, Integer> novosItens = normalizarItens(idsProdutos, quantidades);
+        Map<Integer, Integer> itensAtuais = normalizarItens(atual.getIdsProdutos(), atual.getQuantidades());
+
+        double total = recalcularEstoqueEValor(itensAtuais, novosItens);
+        if (idCupom != -1) {
+            Cupom cupom = cupomDAO.read(idCupom);
+            if (cupom == null || !cupom.getAtivo()) {
+                throw new IllegalArgumentException("Cupom invalido ou inativo.");
+            }
+            total -= total * (cupom.getPercentualDesconto() / 100.0);
+        }
+
+        Pedido atualizado = new Pedido(
+            idPedido,
+            idCliente,
+            mapKeys(novosItens),
+            mapValues(novosItens),
+            idCupom,
+            atual.getDataPedido(),
+            Math.max(0.0, total)
+        );
+        return pedidoDAO.update(atualizado);
     }
 
-    private void validarPedido(int[] idsProdutos, int[] quantidades) {
+    private void validarCliente(int idCliente) throws IOException {
+        if (clienteDAO.read(idCliente) == null) {
+            throw new IllegalArgumentException("Cliente nao encontrado.");
+        }
+    }
+
+    private Map<Integer, Integer> normalizarItens(int[] idsProdutos, int[] quantidades) {
         if (idsProdutos == null || quantidades == null || idsProdutos.length == 0 || idsProdutos.length != quantidades.length) {
             throw new IllegalArgumentException("Pedido deve possuir produtos e quantidades validas.");
         }
+        Map<Integer, Integer> itens = new LinkedHashMap<>();
+        for (int i = 0; i < idsProdutos.length; i++) {
+            int idProduto = idsProdutos[i];
+            int quantidade = quantidades[i];
+            if (quantidade <= 0) {
+                throw new IllegalArgumentException("Quantidade invalida para produto " + idProduto + ".");
+            }
+            itens.merge(idProduto, quantidade, Integer::sum);
+        }
+        return itens;
+    }
+
+    private double aplicarEstoqueParaNovoPedido(Map<Integer, Integer> itens) throws IOException {
+        double total = 0.0;
+        for (Map.Entry<Integer, Integer> entry : itens.entrySet()) {
+            Produto produto = produtoDAO.read(entry.getKey());
+            if (produto == null) {
+                throw new IllegalArgumentException("Produto " + entry.getKey() + " nao encontrado.");
+            }
+            if (produto.getEstoque() < entry.getValue()) {
+                throw new IllegalArgumentException("Estoque insuficiente para produto " + produto.getNome() + ".");
+            }
+        }
+        for (Map.Entry<Integer, Integer> entry : itens.entrySet()) {
+            Produto produto = produtoDAO.read(entry.getKey());
+            produto.setEstoque(produto.getEstoque() - entry.getValue());
+            produtoDAO.update(produto);
+            total += produto.getPreco() * entry.getValue();
+        }
+        return total;
+    }
+
+    private double recalcularEstoqueEValor(Map<Integer, Integer> itensAtuais, Map<Integer, Integer> novosItens) throws IOException {
+        Map<Integer, Boolean> chaves = new LinkedHashMap<>();
+        for (Map.Entry<Integer, Integer> entry : itensAtuais.entrySet()) {
+            chaves.put(entry.getKey(), Boolean.TRUE);
+        }
+        for (Map.Entry<Integer, Integer> entry : novosItens.entrySet()) {
+            chaves.put(entry.getKey(), Boolean.TRUE);
+        }
+
+        for (Integer idProduto : chaves.keySet()) {
+            Produto produto = produtoDAO.read(idProduto);
+            if (produto == null) {
+                throw new IllegalArgumentException("Produto " + idProduto + " nao encontrado.");
+            }
+            int quantidadeAtual = itensAtuais.getOrDefault(idProduto, 0);
+            int novaQuantidade = novosItens.getOrDefault(idProduto, 0);
+            int disponivel = produto.getEstoque() + quantidadeAtual;
+            if (disponivel < novaQuantidade) {
+                throw new IllegalArgumentException("Estoque insuficiente para produto " + produto.getNome() + ".");
+            }
+        }
+
+        double total = 0.0;
+        for (Integer idProduto : chaves.keySet()) {
+            Produto produto = produtoDAO.read(idProduto);
+            int quantidadeAtual = itensAtuais.getOrDefault(idProduto, 0);
+            int novaQuantidade = novosItens.getOrDefault(idProduto, 0);
+            int disponivel = produto.getEstoque() + quantidadeAtual;
+            produto.setEstoque(disponivel - novaQuantidade);
+            produtoDAO.update(produto);
+            total += produto.getPreco() * novaQuantidade;
+        }
+        return total;
+    }
+
+    private int[] mapKeys(Map<Integer, Integer> itens) {
+        return itens.keySet().stream().mapToInt(Integer::intValue).toArray();
+    }
+
+    private int[] mapValues(Map<Integer, Integer> itens) {
+        return itens.values().stream().mapToInt(Integer::intValue).toArray();
     }
 }
