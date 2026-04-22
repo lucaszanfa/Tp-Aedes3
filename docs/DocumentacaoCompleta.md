@@ -47,15 +47,16 @@ actor Cliente
 actor Administrador
 
 rectangle "Sistema Loja Online" {
-  usecase "Cadastrar Cliente" as UC1
+  usecase "Gerenciar Cliente" as UC1
   usecase "Gerenciar Produto" as UC2
   usecase "Gerenciar Cupom" as UC3
-  usecase "Criar Pedido" as UC4
+  usecase "Gerenciar Pedido" as UC4
   usecase "Associar Cupom a Pedido" as UC5
   usecase "Listar Registros Ativos" as UC6
   usecase "Excluir Registro com Lapide" as UC7
   usecase "Atualizar Registro" as UC8
   usecase "Consultar por ID" as UC9
+  usecase "Consultar Pedidos por Cliente" as UC10
 }
 
 Cliente --> UC4
@@ -68,6 +69,7 @@ Administrador --> UC6
 Administrador --> UC7
 Administrador --> UC8
 Administrador --> UC9
+Administrador --> UC10
 @enduml
 ```
 
@@ -123,6 +125,57 @@ O sistema segue o padrao **MVC + DAO**:
 - **View**: interface HTML/CSS.
 - **Main**: servidor HTTP e roteamento das paginas.
 
+## 8.1 Decisoes de projeto
+
+### 8.1.1 Separacao em camadas
+A principal decisao arquitetural foi manter o padrao `MVC + DAO` definido na fase anterior. Essa escolha permitiu separar:
+- a representacao dos dados em `Model`;
+- a persistencia em disco em `DAO`;
+- as regras de negocio e validacoes em `Controller`;
+- a interface e apresentacao em `View`;
+- a inicializacao da aplicacao e o roteamento HTTP em `Main`.
+
+Essa divisao reduz acoplamento, facilita manutencao e torna mais simples comprovar onde cada requisito foi implementado.
+
+### 8.1.2 Persistencia em arquivos binarios
+Foi adotado armazenamento em arquivos binarios por entidade, em vez de um unico arquivo global. Com isso:
+- cada tabela possui ciclo de vida independente;
+- a reconstrucao de indices fica mais simples;
+- a organizacao dos dados acompanha a modelagem da fase anterior.
+
+Cada arquivo principal possui cabecalho com ultimo ID e registros com lapide, tamanho e payload serializado. A exclusao logica foi mantida para preservar historico fisico e simplificar a remocao dos indices.
+
+### 8.1.3 Serializacao dos registros
+Cada entidade implementa a interface `Registro`, ficando responsavel por seu proprio `toByteArray()` e `fromByteArray()`. Essa decisao evita uma serializacao generica pouco transparente e deixa explicito como cada entidade e persistida.
+
+No caso de atributos textuais e multivalorados, foi utilizada a classe utilitaria `BinaryStringIO`, reaproveitada em mais de uma entidade.
+
+### 8.1.4 Indice primario com hash extensivel
+O acesso por chave primaria foi implementado com **hash extensivel persistido em disco** para todas as entidades. A estrutura foi escolhida porque:
+- oferece busca por chave com acesso direto;
+- cresce dinamicamente com divisao de buckets;
+- atende ao requisito da disciplina sem depender de banco externo.
+
+O indice armazena `PK -> endereco do registro no arquivo de dados`.
+
+### 8.1.5 Relacionamento 1:N
+O relacionamento `Cliente 1:N Pedido` foi implementado com hash extensivel mais lista invertida. Essa combinacao foi escolhida porque o professor exige hash extensivel no relacionamento e porque ela evita varredura sequencial em todos os pedidos quando se deseja listar os pedidos de um cliente.
+
+O hash armazena `idCliente -> ponteiro da lista`, e a lista invertida armazena os `idPedido` associados.
+
+### 8.1.6 Representacao dos itens do pedido
+Na modelagem conceitual, o relacionamento entre `Pedido` e `Produto` aparece como `ItemPedido`. Na implementacao, optou-se por manter os itens dentro do proprio `Pedido`, por meio de dois vetores paralelos: `idsProdutos[]` e `quantidades[]`.
+
+Essa decisao simplifica a persistencia fisica do pedido e reduz a quantidade de arquivos/indices necessarios. Portanto:
+- `ItemPedido` permanece no DER como entidade conceitual;
+- a persistencia concreta ocorre como estrutura interna do registro `Pedido`.
+
+### 8.1.7 Interface web local
+Em vez de uma interface por terminal, foi adotado um front-end web local com `HttpServer`, HTML e CSS. A escolha atende ao requisito de interface obrigatoria e permite:
+- executar o sistema sem dependencias externas;
+- demonstrar as operacoes de CRUD visualmente;
+- manter a entrega simples de compilar e apresentar.
+
 ## 9. Regras observadas na implementacao
 - O pedido so pode ser criado para um cliente existente.
 - Cada item do pedido precisa referenciar um produto existente.
@@ -155,16 +208,43 @@ flowchart TD
     CuC --> D3[CupomDAO]
     PeC --> D4[PedidoDAO]
 
+    D1 --> A1[ArquivoDAO]
+    D2 --> A1
+    D3 --> A1
+    D4 --> A1
+
+    A1 --> H1[ExtensibleHashIndex<br/>indices primarios]
+    D4 --> R1[PedidoClienteIndexDAO<br/>hash 1:N]
+
     D1 --> F1[(clientes.db)]
     D2 --> F2[(produtos.db)]
     D3 --> F3[(cupons.db)]
     D4 --> F4[(pedidos.db)]
-    D1 --> I1[(indices PK)]
-    D2 --> I1
-    D3 --> I1
-    D4 --> I1
-    D4 --> R1[(hash Cliente -> Pedidos)]
+
+    H1 --> I1[(clientes.db.pk.dir.db)]
+    H1 --> I2[(clientes.db.pk.buckets.db)]
+    H1 --> I3[(produtos.db.pk.dir.db)]
+    H1 --> I4[(produtos.db.pk.buckets.db)]
+    H1 --> I5[(cupons.db.pk.dir.db)]
+    H1 --> I6[(cupons.db.pk.buckets.db)]
+    H1 --> I7[(pedidos.db.pk.dir.db)]
+    H1 --> I8[(pedidos.db.pk.buckets.db)]
+
+    R1 --> R2[(pedidos.db.cliente_pedidos.dir.db)]
+    R1 --> R3[(pedidos.db.cliente_pedidos.buckets.db)]
+    R1 --> R4[(pedidos.db.cliente_pedidos.list.db)]
 ```
+
+## 10.1 Refinamento dos diagramas da fase anterior
+Os diagramas definidos na fase anterior foram mantidos e refinados para refletir a implementacao final:
+- **DCU**: consolidado com os casos de uso efetivamente suportados pela interface web.
+- **DER**: preserva a modelagem conceitual do dominio, incluindo `ItemPedido` como entidade conceitual derivada do pedido.
+- **Arquitetura em camadas**: refinada para mostrar a separacao real entre `Main`, `View`, `Controller`, `DAO`, arquivos de dados e arquivos de indice.
+
+Documentos complementares:
+- `docs/DCU.md`
+- `docs/DER.md`
+- `docs/ArquiteturaProposta.md`
 
 ## 11. Rotas e execucao
 - Classe principal: `Main.App`
@@ -268,5 +348,5 @@ Os indices ficam em arquivos binarios separados dos dados. O diretorio do hash g
 O repositorio esta separado por camadas: `Model`, `DAO`, `Controller`, `View`, `Main`, `Util`, `docs` e `data`. A aplicacao usa arquitetura `MVC + DAO`, isolando regras de negocio, persistencia, entidades e interface web.
 
 ## 17. Links para a entrega final
-- Repositorio GitHub do grupo: `SUBSTITUIR_PELO_LINK_REAL`
-- Video explicativo: `SUBSTITUIR_PELO_LINK_REAL`
+- Repositorio GitHub do grupo: `https://github.com/lucaszanfa/Tp-Aedes3`
+- Video explicativo: `preencher pelo grupo no momento da submissao`

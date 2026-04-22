@@ -92,3 +92,9 @@ erDiagram
 
 ## 6. Observacao importante
 Na implementacao real, `ItemPedido` nao existe como classe separada. Os itens do pedido sao armazenados dentro da propria classe `Pedido`, por meio de dois vetores: um para IDs de produtos e outro para quantidades. Mesmo assim, para fins de modelagem, a entidade `ItemPedido` representa corretamente o relacionamento entre `Pedido` e `Produto`.
+
+## 7. Refinamento para a Fase II
+- O atributo de contato de `Cliente` foi refinado para `telefones_multivalorados`, refletindo o armazenamento de varios telefones.
+- A entidade `Pedido` foi refinada com o atributo `dataPedido`, presente na implementacao.
+- O relacionamento `Cliente 1:N Pedido` e acessado na implementacao por meio de hash extensivel, embora isso nao altere a notacao conceitual do DER.
+- A entidade `ItemPedido` permanece no diagrama como representacao conceitual, mesmo estando embutida fisicamente no registro de `Pedido`.

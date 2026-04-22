@@ -102,11 +102,39 @@ flowchart TD
     CuC --> D3[CupomDAO]
     PeC --> D4[PedidoDAO]
 
+    D1 --> A1[ArquivoDAO]
+    D2 --> A1
+    D3 --> A1
+    D4 --> A1
+
+    A1 --> H1[ExtensibleHashIndex<br/>indices primarios]
+    D4 --> R1[PedidoClienteIndexDAO<br/>hash 1:N]
+
     D1 --> F1[(clientes.db)]
     D2 --> F2[(produtos.db)]
     D3 --> F3[(cupons.db)]
     D4 --> F4[(pedidos.db)]
+
+    H1 --> I1[(clientes.db.pk.dir.db)]
+    H1 --> I2[(clientes.db.pk.buckets.db)]
+    H1 --> I3[(produtos.db.pk.dir.db)]
+    H1 --> I4[(produtos.db.pk.buckets.db)]
+    H1 --> I5[(cupons.db.pk.dir.db)]
+    H1 --> I6[(cupons.db.pk.buckets.db)]
+    H1 --> I7[(pedidos.db.pk.dir.db)]
+    H1 --> I8[(pedidos.db.pk.buckets.db)]
+
+    R1 --> R2[(pedidos.db.cliente_pedidos.dir.db)]
+    R1 --> R3[(pedidos.db.cliente_pedidos.buckets.db)]
+    R1 --> R4[(pedidos.db.cliente_pedidos.list.db)]
 ```
+
+## 6.1 Refinamento da Fase II
+O diagrama foi refinado para evidenciar componentes que se tornaram obrigatorios nesta fase:
+- indices primarios persistidos em disco para todas as entidades;
+- `ExtensibleHashIndex` como estrutura reutilizada pelos DAOs;
+- `PedidoClienteIndexDAO` como estrutura de acesso ao relacionamento `Cliente 1:N Pedido`;
+- arquivos especificos do relacionamento, separados dos arquivos principais de dados.
 
 ## 7. Fluxo geral da aplicacao
 1. O usuario acessa a interface pelo navegador.
