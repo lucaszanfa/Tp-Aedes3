@@ -45,6 +45,18 @@ Arquivos do relacionamento `Cliente -> Pedidos`:
 ## Como compilar e executar
 O ambiente deste workspace possui `java` em versao antiga, entao a forma mais segura e compilar com compatibilidade Java 8:
 
+### Opcao mais simples
+Execute diretamente o arquivo:
+```powershell
+.\executar.bat
+```
+
+Ou de um duplo clique em `executar.bat`.
+
+Depois abra no navegador:
+`http://localhost:18080`
+
+### Opcao manual
 1. Compilar:
 ```powershell
 javac --release 8 Main\App.java
