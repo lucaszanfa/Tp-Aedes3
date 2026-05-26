@@ -351,4 +351,4 @@ O repositorio esta separado por camadas: `Model`, `DAO`, `Controller`, `View`, `
 
 ## 17. Links para a entrega final
 - Repositorio GitHub do grupo: `https://github.com/lucaszanfa/Tp-Aedes3`
-- Video explicativo: `preencher pelo grupo no momento da submissao`
+- Video explicativo da Fase III: <https://www.youtube.com/watch?v=KkgcpoEBV88>

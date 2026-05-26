@@ -223,7 +223,7 @@ com produtos, consultar os dois sentidos do N:N em `/pedidos` e abrir
 - GitHub: <https://github.com/lucaszanfa/Tp-Aedes3>
 - Video explicativo da Fase I: <https://www.youtube.com/watch?v=o_7LNxR3HZc>
 - Video explicativo da Fase II: <https://www.youtube.com/watch?v=3b0R70VgKEw>
-- Video explicativo da Fase III: link a ser inserido pelo grupo apos a gravacao e publicacao do video.
+- Video explicativo da Fase III: <https://www.youtube.com/watch?v=KkgcpoEBV88>
 
 ## 10. Conclusao
 
