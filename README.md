@@ -1,10 +1,10 @@
-# Loja Online - TP
+# Loja Online - TP - Fase III
 
-Aplicacao Java da disciplina implementada com `MVC + DAO`, persistencia em arquivos binarios, indices primarios em disco e relacionamento `Cliente 1:N Pedido` usando hash extensivel. A interface obrigatoria foi entregue em front-end web local com `HttpServer`.
+Aplicacao Java com `MVC + DAO`, persistencia binaria e interface web local. A Fase III implementa o relacionamento `Pedido N:N Produto` por meio da tabela associativa `PedidoProduto`, com chave primaria composta e indices B+ persistentes para navegacao e consulta ordenada.
 
 ## Estrutura
 - `Model/`: entidades de dominio e interface `Registro`.
-- `DAO/`: acesso a dados, indice primario em hash extensivel e indice do relacionamento `1:N`.
+- `DAO/`: acesso a dados, hash extensivel, Arvore B+ e tabela associativa.
 - `Controller/`: validacoes, regras de negocio e integridade referencial.
 - `View/`: HTML/CSS da interface web.
 - `Main/`: servidor HTTP e rotas.
@@ -12,10 +12,14 @@ Aplicacao Java da disciplina implementada com `MVC + DAO`, persistencia em arqui
 - `docs/`: documentacao tecnica e respostas do formulario.
 - `data/`: arquivos de dados e indices persistidos entre execucoes.
 
-## Entregas da Fase II atendidas
+## Entregas da Fase III atendidas
 - CRUD completo para `Cliente`, `Produto`, `Cupom` e `Pedido`.
 - Indice primario persistente para todas as tabelas.
-- Relacionamento `Cliente 1:N Pedido` implementado com hash extensivel.
+- Relacionamento `Pedido N:N Produto` implementado por `PedidoProduto`.
+- Chave composta `(idPedido, idProduto)`, sem identificador artificial.
+- Consulta `Pedido -> Produtos` e `Produto -> Pedidos` na pagina web de pedidos.
+- Arvore B+ persistente aplicada a listagem ordenada de produtos por ID.
+- Hash extensivel mantido para buscas pontuais por PK e para `Cliente -> Pedidos`.
 - Exclusao logica por lapide.
 - Front-end web para todas as operacoes principais.
 - Validacao de entradas e mensagens de erro para casos comuns.
@@ -26,9 +30,10 @@ Arquivos de dados:
 - `data/produtos.db`
 - `data/cupons.db`
 - `data/pedidos.db`
+- `data/pedido_produto.db`
 
-Cada `*.db` armazena:
-- cabecalho `int` com o ultimo ID;
+Cada arquivo de dados armazena:
+- cabecalho `int` de controle (ultimo ID nas entidades ou total de insercoes na associativa);
 - lapide `boolean`;
 - tamanho do registro `int`;
 - payload binario da entidade.
@@ -40,44 +45,39 @@ Arquivos de indice primario gerados automaticamente:
 Arquivos do relacionamento `Cliente -> Pedidos`:
 - `data/pedidos.db.cliente_pedidos.dir.db`
 - `data/pedidos.db.cliente_pedidos.buckets.db`
+
+Arquivos da Fase III:
+- `data/pedido_produto.db`: registros associativos com lapide.
+- `data/pedido_produto.db.pedido.bplus.db`: B+ pela chave `(idPedido, idProduto)`.
+- `data/pedido_produto.db.produto.bplus.db`: B+ reversa `(idProduto, idPedido)`.
+- `data/produtos.db.ordem_id.bplus.db`: B+ da consulta ordenada do catalogo.
 - `data/pedidos.db.cliente_pedidos.list.db`
 
 ## Como compilar e executar
-O ambiente deste workspace possui `java` em versao antiga, entao a forma mais segura e compilar com compatibilidade Java 8:
-
-### Opcao mais simples
-Execute diretamente o arquivo:
+O runtime disponivel e Java 8; compile para uma pasta de build com compatibilidade Java 8:
 ```powershell
-.\executar.bat
+New-Item -ItemType Directory -Force out\classes | Out-Null
+$sources = Get-ChildItem -Recurse -Filter *.java -Path Controller,DAO,Main,Model,Util,View | ForEach-Object { $_.FullName }
+javac --release 8 -d out\classes $sources
 ```
 
-Ou de um duplo clique em `executar.bat`.
-
-Depois abra no navegador:
-`http://localhost:18080`
-
-### Opcao manual
-1. Compilar:
+Executar:
 ```powershell
-javac --release 8 Main\App.java
+java -cp out\classes Main.App
 ```
 
-2. Executar:
-```powershell
-java Main.App
-```
-
-3. Abrir no navegador:
+Abrir no navegador:
 `http://localhost:18080`
 
 ## Funcionalidades da interface
 - `/clientes`: CRUD e listagem de clientes.
-- `/produtos`: CRUD e listagem de produtos.
+- `/produtos`: CRUD e listagem ordenada pela Arvore B+.
 - `/cupons`: CRUD e listagem de cupons.
-- `/pedidos`: CRUD, associacao de cupom e consulta do relacionamento `1:N` por cliente.
+- `/pedidos`: CRUD, cupom, consulta `Cliente -> Pedidos` e navegacao N:N nos dois sentidos.
 
 ## Documentacao
-- `docs/DocumentacaoCompleta.md`
+- `docs/RelatorioFaseIII.md`
+- `docs/RelatorioFaseIII.pdf`
 - `docs/ArquiteturaProposta.md`
 - `docs/DER.md`
 - `docs/DCU.md`

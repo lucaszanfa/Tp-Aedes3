@@ -3,11 +3,14 @@ package Controller;
 import DAO.ClienteDAO;
 import DAO.CupomDAO;
 import DAO.PedidoDAO;
+import DAO.PedidoProdutoDAO;
 import DAO.ProdutoDAO;
 import Model.Cliente;
 import Model.Cupom;
 import Model.Pedido;
+import Model.PedidoProduto;
 import Model.Produto;
+import java.util.ArrayList;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
@@ -20,20 +23,26 @@ public class PedidoController {
     private final ClienteDAO clienteDAO;
     private final ProdutoDAO produtoDAO;
     private final CupomDAO cupomDAO;
+    private final PedidoProdutoDAO pedidoProdutoDAO;
 
-    public PedidoController(PedidoDAO pedidoDAO, ClienteDAO clienteDAO, ProdutoDAO produtoDAO, CupomDAO cupomDAO) {
+    public PedidoController(PedidoDAO pedidoDAO, ClienteDAO clienteDAO, ProdutoDAO produtoDAO, CupomDAO cupomDAO,
+                            PedidoProdutoDAO pedidoProdutoDAO) throws IOException {
         this.pedidoDAO = pedidoDAO;
         this.clienteDAO = clienteDAO;
         this.produtoDAO = produtoDAO;
         this.cupomDAO = cupomDAO;
+        this.pedidoProdutoDAO = pedidoProdutoDAO;
+        this.pedidoProdutoDAO.migrateLegacyItems(pedidoDAO.listActive());
     }
 
     public Pedido criarPedido(int idCliente, int[] idsProdutos, int[] quantidades) throws IOException {
         validarCliente(idCliente);
         Map<Integer, Integer> itens = normalizarItens(idsProdutos, quantidades);
         double total = aplicarEstoqueParaNovoPedido(itens);
-        Pedido pedido = new Pedido(0, idCliente, mapKeys(itens), mapValues(itens), -1, LocalDate.now().toString(), total);
-        return pedidoDAO.create(pedido);
+        Pedido pedido = new Pedido(0, idCliente, new int[0], new int[0], -1, LocalDate.now().toString(), total);
+        Pedido created = pedidoDAO.create(pedido);
+        pedidoProdutoDAO.replaceForPedido(created.getId(), criarItens(created.getId(), itens));
+        return created;
     }
 
     public boolean associarCupom(int idPedido, int idCupom) throws IOException {
@@ -69,7 +78,37 @@ public class PedidoController {
         return pedidoDAO.listByCliente(idCliente);
     }
 
+    public List<PedidoProduto> listarItensDoPedido(int idPedido) throws IOException {
+        return pedidoProdutoDAO.listByPedido(idPedido);
+    }
+
+    public List<Pedido> listarPorProduto(int idProduto) throws IOException {
+        if (produtoDAO.read(idProduto) == null) {
+            throw new IllegalArgumentException("Produto nao encontrado.");
+        }
+        List<Pedido> pedidos = new ArrayList<>();
+        for (PedidoProduto item : pedidoProdutoDAO.listByProduto(idProduto)) {
+            Pedido pedido = pedidoDAO.read(item.getIdPedido());
+            if (pedido != null) {
+                pedidos.add(pedido);
+            }
+        }
+        return pedidos;
+    }
+
     public boolean excluir(int id) throws IOException {
+        Pedido pedido = pedidoDAO.read(id);
+        if (pedido == null) {
+            return false;
+        }
+        for (PedidoProduto item : pedidoProdutoDAO.listByPedido(id)) {
+            Produto produto = produtoDAO.read(item.getIdProduto());
+            if (produto != null) {
+                produto.setEstoque(produto.getEstoque() + item.getQuantidade());
+                produtoDAO.update(produto);
+            }
+        }
+        pedidoProdutoDAO.deleteByPedido(id);
         return pedidoDAO.delete(id);
     }
 
@@ -81,7 +120,7 @@ public class PedidoController {
 
         validarCliente(idCliente);
         Map<Integer, Integer> novosItens = normalizarItens(idsProdutos, quantidades);
-        Map<Integer, Integer> itensAtuais = normalizarItens(atual.getIdsProdutos(), atual.getQuantidades());
+        Map<Integer, Integer> itensAtuais = mapItensPersistidos(pedidoProdutoDAO.listByPedido(idPedido));
 
         double total = recalcularEstoqueEValor(itensAtuais, novosItens);
         if (idCupom != -1) {
@@ -95,13 +134,17 @@ public class PedidoController {
         Pedido atualizado = new Pedido(
             idPedido,
             idCliente,
-            mapKeys(novosItens),
-            mapValues(novosItens),
+            new int[0],
+            new int[0],
             idCupom,
             atual.getDataPedido(),
             Math.max(0.0, total)
         );
-        return pedidoDAO.update(atualizado);
+        boolean updated = pedidoDAO.update(atualizado);
+        if (updated) {
+            pedidoProdutoDAO.replaceForPedido(idPedido, criarItens(idPedido, novosItens));
+        }
+        return updated;
     }
 
     private void validarCliente(int idCliente) throws IOException {
@@ -187,5 +230,24 @@ public class PedidoController {
 
     private int[] mapValues(Map<Integer, Integer> itens) {
         return itens.values().stream().mapToInt(Integer::intValue).toArray();
+    }
+
+    private List<PedidoProduto> criarItens(int idPedido, Map<Integer, Integer> itens) {
+        List<PedidoProduto> registros = new ArrayList<>();
+        for (Map.Entry<Integer, Integer> item : itens.entrySet()) {
+            registros.add(new PedidoProduto(idPedido, item.getKey(), item.getValue()));
+        }
+        return registros;
+    }
+
+    private Map<Integer, Integer> mapItensPersistidos(List<PedidoProduto> registros) {
+        Map<Integer, Integer> itens = new LinkedHashMap<>();
+        for (PedidoProduto item : registros) {
+            itens.put(item.getIdProduto(), item.getQuantidade());
+        }
+        if (itens.isEmpty()) {
+            throw new IllegalArgumentException("Pedido nao possui itens associados.");
+        }
+        return itens;
     }
 }

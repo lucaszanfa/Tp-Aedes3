@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Loja Online - Relatorio Tecnico - Fase III</title>
+<style>
+@page { size: A4; margin: 18mm 16mm; }
+* { box-sizing: border-box; }
+body { font: 11pt Arial, sans-serif; line-height: 1.42; color: #17243d; margin: 0; }
+h1 { color: #163d86; font-size: 25pt; margin: 0 0 5mm; }
+h2 { color: #1d4ed8; font-size: 16pt; margin: 8mm 0 3mm; border-bottom: 1px solid #ccdbf7; padding-bottom: 2mm; }
+h3 { color: #163d86; font-size: 12pt; margin: 5mm 0 2mm; }
+p, li { margin: 0 0 2.4mm; }
+ul { margin: 2mm 0 3mm 6mm; padding-left: 5mm; }
+code { background: #edf3ff; border-radius: 3px; padding: 1px 4px; font: 10pt Consolas, monospace; }
+pre { background: #f1f6ff; border: 1px solid #ccdbf7; border-radius: 6px; padding: 4mm; white-space: pre-wrap; font: 9.5pt Consolas, monospace; }
+table { width: 100%; border-collapse: collapse; margin: 3mm 0 5mm; font-size: 10pt; }
+th, td { border: 1px solid #ccdbf7; padding: 2.5mm; vertical-align: top; }
+th { background: #e6efff; color: #163d86; text-align: left; }
+.cover { padding-top: 30mm; min-height: 245mm; }
+.tag { display: inline-block; color: #1d4ed8; background: #e6efff; border-radius: 20px; padding: 2mm 4mm; font-weight: bold; margin-bottom: 7mm; }
+.summary { margin-top: 15mm; border-left: 4px solid #2563eb; padding: 4mm 6mm; background: #f5f8ff; }
+.break { page-break-before: always; }
+.small { color: #516078; font-size: 9.5pt; }
+a { color: #1d4ed8; word-break: break-all; }
+</style>
+</head>
+<body>
+<section class="cover">
+  <div class="tag">TRABALHO PRATICO - FASE III</div>
+  <h1>Loja Online</h1>
+  <h2>Relatorio Tecnico do Aplicativo</h2>
+  <p><strong>Arquitetura:</strong> MVC + DAO em Java, com interface web local</p>
+  <p><strong>Persistencia:</strong> arquivos binarios com cabecalho e exclusao logica por lapide</p>
+  <p><strong>Evolucao:</strong> relacionamento N:N entre Pedido e Produto e consulta ordenada com Arvore B+</p>
+  <div class="summary">
+    Esta fase transforma os itens de pedido em uma tabela associativa persistida,
+    com chave primaria composta <code>(idPedido, idProduto)</code>. O sistema
+    oferece navegacao nos dois sentidos da associacao e exibe o catalogo em
+    ordem diretamente pelas folhas de uma Arvore B+ persistente.
+  </div>
+</section>
+
+<h2>1. Escopo implementado</h2>
+<ul>
+  <li>Tabela associativa real <code>PedidoProduto</code> para o relacionamento <code>Pedido N:N Produto</code>.</li>
+  <li>PK composta formada exclusivamente pelas FKs <code>idPedido</code> e <code>idProduto</code>.</li>
+  <li>Consultas web <code>Pedido -&gt; Produtos</code> e <code>Produto -&gt; Pedidos</code>.</li>
+  <li>Arvores B+ persistentes para a associacao e para a listagem ordenada de produtos.</li>
+  <li>Integridade na criacao, atualizacao e remocao, incluindo ajuste de estoque.</li>
+  <li>Migracao automatica dos itens salvos no formato legado das fases anteriores.</li>
+</ul>
+
+<h2>2. Modelo de dados</h2>
+<table>
+  <tr><th>Entidade</th><th>Campos relevantes</th><th>Papel</th></tr>
+  <tr><td>Pedido</td><td><code>id</code>, <code>idCliente</code>, <code>idCupom</code>, <code>dataPedido</code>, <code>valorTotal</code></td><td>Tabela principal de vendas</td></tr>
+  <tr><td>Produto</td><td><code>id</code>, <code>nome</code>, <code>preco</code>, <code>estoque</code></td><td>Tabela principal do catalogo</td></tr>
+  <tr><td>PedidoProduto</td><td><code>idPedido</code> PK/FK, <code>idProduto</code> PK/FK, <code>quantidade</code></td><td>Tabela associativa N:N</td></tr>
+</table>
+<pre>PEDIDO 1 ----- N PEDIDO_PRODUTO N ----- 1 PRODUTO
+                     PK (idPedido, idProduto)</pre>
+<p>A classe <code>Pedido</code> ainda consegue ler vetores legados para migracao, mas novos itens e todas as consultas desta fase utilizam <code>PedidoProduto</code>.</p>
+
+<h2>3. Persistencia e indices</h2>
+<h3>3.1 Arquivo associativo</h3>
+<pre>data/pedido_produto.db
+[cabecalho int: total de insercoes]
+[lapide boolean][tamanho int][idPedido int][idProduto int][quantidade int] ...</pre>
+<p>O arquivo novo segue o padrao das tabelas anteriores: cabecalho de quatro bytes, lapide booleana, tamanho e payload binario. Exclusoes nao removem bytes fisicamente; elas marcam a lapide e os indices sao reconstruidos somente com registros ativos.</p>
+
+<h3>3.2 Estrutura B+</h3>
+<table>
+  <tr><th>Indice persistido</th><th>Chave</th><th>Aplicacao</th></tr>
+  <tr><td><code>pedido_produto.db.pedido.bplus.db</code></td><td><code>(idPedido, idProduto)</code></td><td>Listar produtos de um pedido</td></tr>
+  <tr><td><code>pedido_produto.db.produto.bplus.db</code></td><td><code>(idProduto, idPedido)</code></td><td>Listar pedidos de um produto</td></tr>
+  <tr><td><code>produtos.db.ordem_id.bplus.db</code></td><td><code>idProduto</code></td><td>Listar catalogo em ordem</td></tr>
+</table>
+<p><code>BPlusTreeIndex</code> persiste nos e folhas encadeadas. A pagina <code>/produtos</code> percorre as folhas do indice para apresentar IDs crescentes, sem chamada de ordenacao em memoria principal.</p>
+<p>O hash extensivel preexistente continua sendo usado nas pesquisas pontuais por PK e em <code>Cliente -&gt; Pedidos</code>, pois e apropriado quando a operacao principal e obter uma chave exata.</p>
+
+<h2 class="break">4. Integracao com a interface e o CRUD</h2>
+<table>
+  <tr><th>Operacao</th><th>Tratamento aplicado</th></tr>
+  <tr><td>Criar pedido</td><td>Valida cliente, produtos, quantidades e estoque; grava itens em <code>PedidoProduto</code>.</td></tr>
+  <tr><td>Atualizar pedido</td><td>Le itens associativos ativos, recalcula estoque e total, marca itens antigos com lapide e grava os novos.</td></tr>
+  <tr><td>Excluir pedido</td><td>Aplica lapide aos itens associados e devolve quantidades ao estoque.</td></tr>
+  <tr><td>Excluir produto</td><td>Bloqueia a exclusao caso exista item ativo referenciando o produto.</td></tr>
+  <tr><td>Consultar N:N</td><td>Rotas web consultam B+ por pedido ou pela ordem reversa por produto.</td></tr>
+</table>
+<p>A aplicacao nao utiliza console como interface. A demonstracao e executada em <code>http://localhost:18080</code>, especialmente nas telas <code>/produtos</code> e <code>/pedidos</code>.</p>
+
+<h2>5. Formulario tecnico obrigatorio</h2>
+<h3>1. Qual foi o relacionamento N:N escolhido e quais tabelas ele conecta?</h3>
+<p>Foi escolhido <strong>Pedido N:N Produto</strong>. A tabela intermediaria persistida <code>PedidoProduto</code> conecta as tabelas principais <code>Pedido</code> e <code>Produto</code>.</p>
+
+<h3>2. Qual estrutura de indice foi utilizada (B+ ou Hash Extensivel)? Justifique.</h3>
+<p>Na nova tabela foi utilizada a <strong>Arvore B+</strong>, porque pares com o mesmo pedido ou produto ocupam intervalos contiguos e podem ser recuperados eficientemente. As folhas encadeadas tambem permitem a consulta ordenada obrigatoria do catalogo sem ordenar resultados em memoria. O hash extensivel anterior foi preservado para consultas exatas por ID.</p>
+
+<h3>3. Como foi implementada a chave composta da tabela intermediaria?</h3>
+<p>A chave e o par <code>(idPedido, idProduto)</code>, sem ID artificial. Para a B+, cada par e codificado em um <code>long</code>: 32 bits para o primeiro ID e 32 bits para o segundo. O DAO impede a repeticao de um par ativo.</p>
+
+<h3>4. Como e feita a busca eficiente de registros por meio do indice?</h3>
+<p>A consulta por pedido percorre o intervalo <code>(idPedido, 0)</code> a <code>(idPedido, Integer.MAX_VALUE)</code>. O indice reverso realiza a mesma operacao para produto. O catalogo ordenado percorre as folhas ligadas da B+ de produtos.</p>
+
+<h3>5. Como o sistema trata a integridade referencial entre as tabelas?</h3>
+<p>Pedidos somente aceitam produtos existentes e com estoque. Atualizacoes substituem associacoes com lapide e ajustam estoque. A remocao de pedido remove logicamente seus itens e recompoe estoque; a remocao de produto referenciado e recusada.</p>
+
+<h3>6. Como foi organizada a persistencia da nova tabela?</h3>
+<p><code>pedido_produto.db</code> possui cabecalho <code>int</code> e registros no formato <code>lapide + tamanho + payload</code>. Seus arquivos B+ separados sao reconstruidos a partir dos itens ativos ao iniciar a aplicacao.</p>
+
+<h3>7. Como o codigo da tabela intermediaria se integra com o CRUD?</h3>
+<p><code>PedidoController</code> utiliza <code>PedidoProdutoDAO</code> na criacao, atualizacao, consulta e exclusao de pedidos. <code>ProdutoController</code> consulta a tabela para impedir exclusao invalida. <code>Main.App</code> expoe as consultas no navegador.</p>
+
+<h3>8. Como esta organizada a estrutura de diretorios e modulos?</h3>
+<table>
+  <tr><th>Diretorio</th><th>Conteudo atual</th></tr>
+  <tr><td><code>Model/</code></td><td>Entidades, incluindo <code>PedidoProduto.java</code>.</td></tr>
+  <tr><td><code>DAO/</code></td><td>Persistencia, <code>PedidoProdutoDAO.java</code>, <code>BPlusTreeIndex.java</code> e hash existente.</td></tr>
+  <tr><td><code>Controller/</code></td><td>Regras de integridade, estoque e operacoes N:N.</td></tr>
+  <tr><td><code>Main/</code> e <code>View/</code></td><td>Servidor HTTP, rotas, formularios e estilo web.</td></tr>
+  <tr><td><code>data/</code></td><td>Dados e indices binarios persistidos na execucao.</td></tr>
+  <tr><td><code>docs/</code></td><td>Documentacao tecnica e este PDF.</td></tr>
+</table>
+
+<h2>6. Compilacao e demonstracao</h2>
+<pre>New-Item -ItemType Directory -Force out\classes | Out-Null
+$sources = Get-ChildItem -Recurse -Filter *.java -Path Controller,DAO,Main,Model,Util,View | ForEach-Object { $_.FullName }
+javac --release 8 -d out\classes $sources
+java -cp out\classes Main.App</pre>
+<p>Demonstracao: criar um pedido com produtos em <code>/pedidos</code>; consultar os produtos do pedido e os pedidos de um produto; acessar <code>/produtos</code> para visualizar a ordem produzida pela Arvore B+.</p>
+
+<h2>7. Links da entrega</h2>
+<p><strong>GitHub:</strong> <a href="https://github.com/lucaszanfa/Tp-Aedes3">https://github.com/lucaszanfa/Tp-Aedes3</a></p>
+<p><strong>Video explicativo da Fase I:</strong> <a href="https://www.youtube.com/watch?v=o_7LNxR3HZc">https://www.youtube.com/watch?v=o_7LNxR3HZc</a></p>
+<p><strong>Video explicativo da Fase II:</strong> <a href="https://www.youtube.com/watch?v=3b0R70VgKEw">https://www.youtube.com/watch?v=3b0R70VgKEw</a></p>
+<p><strong>Video explicativo da Fase III:</strong> link a ser inserido pelo grupo apos gravacao e publicacao.</p>
+
+<h2>8. Conclusao</h2>
+<p>A Fase III implementa efetivamente a associacao antes conceitual entre pedidos e produtos. A solucao possui chave primaria composta, persistencia no padrao do projeto, navegacao N:N bidirecional, integridade referencial no CRUD e uma aplicacao pratica de Arvore B+ para recuperacao ordenada em disco.</p>
+<p class="small">Documento preparado para a entrega da Fase III. O unico item dependente de acao externa e o URL do video novo, que deve substituir o campo indicado apos sua publicacao.</p>
+</body>
+</html>

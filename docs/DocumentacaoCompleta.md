@@ -1,4 +1,6 @@
-# Documentacao Completa - Loja Online
+# Documentacao Completa - Loja Online (Fases I e II)
+
+> Documento historico das fases anteriores. A implementacao e documentacao vigente da Fase III, incluindo o relacionamento N:N real e o formulario obrigatorio, estao em `RelatorioFaseIII.md` e `RelatorioFaseIII.pdf`.
 
 ## 1. Descricao do problema
 O sistema representa uma **Loja Online** capaz de cadastrar e gerenciar `Cliente`, `Produto`, `Cupom` e `Pedido`. A Fase II evolui a base da Fase I com tres pontos centrais:

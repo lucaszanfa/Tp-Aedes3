@@ -13,6 +13,8 @@ O sistema foi implementado em Java seguindo o padrao **MVC + DAO**, com interfac
 ## 3. Objetivo do trabalho
 - Desenvolver um sistema que permita gerenciar clientes, produtos, cupons e pedidos.
 - Permitir a criacao de pedidos com multiplos produtos.
+- Persistir a associacao N:N entre pedidos e produtos em tabela intermediaria com chave composta.
+- Permitir consultar produtos de um pedido e pedidos de um produto.
 - Permitir a associacao de cupons ativos a pedidos existentes.
 - Garantir persistencia em arquivos binarios com cabecalho.
 - Implementar exclusao logica utilizando lapide.
@@ -27,6 +29,8 @@ O sistema foi implementado em Java seguindo o padrao **MVC + DAO**, com interfac
 - **RF06**: Listar registros ativos.
 - **RF07**: Excluir registros com logica de lapide.
 - **RF08**: Consultar registro por identificador.
+- **RF09**: Navegar no relacionamento `Pedido N:N Produto` nos dois sentidos.
+- **RF10**: Listar produtos em ordem usando Arvore B+ persistente.
 
 ## 5. Requisitos nao funcionais
 - **RNF01**: O sistema nao utiliza console como interface principal de uso.
@@ -35,6 +39,7 @@ O sistema foi implementado em Java seguindo o padrao **MVC + DAO**, com interfac
 - **RNF04**: A documentacao do projeto foi organizada na pasta `docs`.
 - **RNF05**: A aplicacao e executada localmente em servidor HTTP na porta `18080`.
 - **RNF06**: O ambiente de execucao deve usar uma versao moderna de Java compativel com o codigo-fonte atual.
+- **RNF07**: A tabela associativa deve manter cabecalho e exclusao logica por lapide.
 
 ## 6. Atores
 - **Cliente**: ator de negocio que realiza pedidos no sistema.
@@ -44,9 +49,11 @@ O sistema foi implementado em Java seguindo o padrao **MVC + DAO**, com interfac
 No projeto desenvolvido:
 - `Cliente` possui `id`, `nome`, `email` e `telefones`.
 - `Produto` possui `id`, `nome`, `preco` e `estoque`.
-- `Pedido` possui `idCliente`, `idCupom`, `dataPedido`, `valorTotal`, lista de IDs de produtos e lista de quantidades.
+- `Pedido` possui `idCliente`, `idCupom`, `dataPedido` e `valorTotal`.
+- `PedidoProduto` possui a PK composta `(idPedido, idProduto)` e a quantidade; vetores antigos de `Pedido` sao lidos apenas para migracao.
 - `Cupom` possui `codigo`, `percentualDesconto` e status `ativo`.
 - A interface e acessada pelo navegador em `http://localhost:18080`.
 - Os dados sao armazenados em `data/clientes.db`, `data/produtos.db`, `data/pedidos.db` e `data/cupons.db`.
+- A nova associacao e armazenada em `data/pedido_produto.db` e indexada por Arvores B+ persistentes.
 - A criacao de pedidos reduz o estoque dos produtos envolvidos.
 - A associacao de cupom recalcula o valor total do pedido.

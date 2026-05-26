@@ -1,4 +1,6 @@
-# Documentacao do Projeto - Versao para Word
+# Documentacao do Projeto - Versao para Word (Fases I e II - Historico)
+
+> Este texto antecede a Fase III. Para a entrega atual, utilize `RelatorioFaseIII.pdf`, que documenta `PedidoProduto`, chave composta e Arvore B+.
 
 ## 1. Identificacao do projeto
 

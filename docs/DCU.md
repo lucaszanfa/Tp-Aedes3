@@ -66,4 +66,5 @@ Administrador --> UC10
 - O fluxo de **Gerenciar Pedido** depende da existencia previa de cliente e produto.
 - O caso de uso **Associar Cupom a Pedido** depende da existencia de um pedido e de um cupom ativo.
 - O caso de uso **Consultar Pedidos por Cliente** representa a navegacao do relacionamento `Cliente 1:N Pedido`.
+- Na Fase III, a interface tambem disponibiliza **Consultar Produtos do Pedido** e **Consultar Pedidos do Produto**, representando a navegacao bidirecional de `Pedido N:N Produto`.
 - A interface atual do projeto nao implementa autenticacao; os atores representam papeis de negocio, nao contas de acesso.

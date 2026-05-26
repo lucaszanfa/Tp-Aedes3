@@ -25,9 +25,9 @@ O DER abaixo representa as entidades persistidas e os relacionamentos logicos ut
   - `idCupom`
   - `dataPedido`
   - `valorTotal`
-- **ItemPedido** (entidade conceitual derivada da estrutura interna do pedido)
-  - `idPedido`
-  - `idProduto`
+- **PedidoProduto** (tabela associativa persistida)
+  - `idPedido` (PK, FK)
+  - `idProduto` (PK, FK)
   - `quantidade`
 
 ## 3. Relacionamentos
@@ -40,7 +40,7 @@ O DER abaixo representa as entidades persistidas e os relacionamentos logicos ut
 - O pedido so pode ser criado se o cliente existir.
 - O pedido precisa ter produtos e quantidades validas.
 - A quantidade de cada item deve ser maior que zero.
-- Os vetores de produtos e quantidades precisam ter o mesmo tamanho.
+- A chave composta impede mais de um item para o mesmo par pedido/produto.
 - O estoque do produto e reduzido no momento da criacao do pedido.
 - O cupom so pode ser associado se existir e estiver ativo.
 - Um pedido nao pode receber mais de um cupom.
@@ -50,8 +50,8 @@ O DER abaixo representa as entidades persistidas e os relacionamentos logicos ut
 ```mermaid
 erDiagram
     CLIENTE ||--o{ PEDIDO : realiza
-    PEDIDO ||--|{ ITEM_PEDIDO : contem
-    PRODUTO ||--o{ ITEM_PEDIDO : participa
+    PEDIDO ||--|{ PEDIDO_PRODUTO : contem
+    PRODUTO ||--o{ PEDIDO_PRODUTO : participa
     CUPOM o|--o{ PEDIDO : aplica_desconto
 
     CLIENTE {
@@ -83,18 +83,16 @@ erDiagram
         double valorTotal
     }
 
-    ITEM_PEDIDO {
-        int idPedido FK
-        int idProduto FK
+    PEDIDO_PRODUTO {
+        int idPedido PK, FK
+        int idProduto PK, FK
         int quantidade
     }
 ```
 
-## 6. Observacao importante
-Na implementacao real, `ItemPedido` nao existe como classe separada. Os itens do pedido sao armazenados dentro da propria classe `Pedido`, por meio de dois vetores: um para IDs de produtos e outro para quantidades. Mesmo assim, para fins de modelagem, a entidade `ItemPedido` representa corretamente o relacionamento entre `Pedido` e `Produto`.
-
-## 7. Refinamento para a Fase II
+## 6. Refinamento para a Fase III
 - O atributo de contato de `Cliente` foi refinado para `telefones_multivalorados`, refletindo o armazenamento de varios telefones.
 - A entidade `Pedido` foi refinada com o atributo `dataPedido`, presente na implementacao.
 - O relacionamento `Cliente 1:N Pedido` e acessado na implementacao por meio de hash extensivel, embora isso nao altere a notacao conceitual do DER.
-- A entidade `ItemPedido` permanece no diagrama como representacao conceitual, mesmo estando embutida fisicamente no registro de `Pedido`.
+- A entidade `PedidoProduto` agora existe fisicamente em `data/pedido_produto.db`, com registros contendo cabecalho, lapide e payload.
+- O acesso nos dois sentidos e mantido por indices B+ de chaves compostas em ordens opostas.

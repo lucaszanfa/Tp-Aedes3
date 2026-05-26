@@ -7,10 +7,12 @@ import Controller.ProdutoController;
 import DAO.ClienteDAO;
 import DAO.CupomDAO;
 import DAO.PedidoDAO;
+import DAO.PedidoProdutoDAO;
 import DAO.ProdutoDAO;
 import Model.Cliente;
 import Model.Cupom;
 import Model.Pedido;
+import Model.PedidoProduto;
 import Model.Produto;
 import View.HtmlView;
 import com.sun.net.httpserver.HttpExchange;
@@ -32,11 +34,12 @@ public class App {
         ProdutoDAO produtoDAO = new ProdutoDAO("data/produtos.db");
         CupomDAO cupomDAO = new CupomDAO("data/cupons.db");
         PedidoDAO pedidoDAO = new PedidoDAO("data/pedidos.db");
+        PedidoProdutoDAO pedidoProdutoDAO = new PedidoProdutoDAO("data/pedido_produto.db");
 
         ClienteController clienteController = new ClienteController(clienteDAO);
-        ProdutoController produtoController = new ProdutoController(produtoDAO);
+        ProdutoController produtoController = new ProdutoController(produtoDAO, pedidoProdutoDAO);
         CupomController cupomController = new CupomController(cupomDAO);
-        PedidoController pedidoController = new PedidoController(pedidoDAO, clienteDAO, produtoDAO, cupomDAO);
+        PedidoController pedidoController = new PedidoController(pedidoDAO, clienteDAO, produtoDAO, cupomDAO, pedidoProdutoDAO);
 
         HttpServer server = HttpServer.create(new InetSocketAddress(18080), 0);
         server.createContext("/", ex -> {
@@ -46,13 +49,13 @@ public class App {
             }
             sendHtml(ex, HtmlView.page("Inicio", HtmlView.nav()
                 + "<section class='hero'>"
-                + "<span class='eyebrow'>TP - MVC + DAO</span>"
+                + "<span class='eyebrow'>Fase III - MVC + DAO</span>"
                 + "<h1>Loja Online</h1>"
-                + "<p>Sistema web para uma loja online com cadastro de clientes, catalogo de produtos, criacao de pedidos e aplicacao de cupons, mantendo persistencia em arquivos binarios com cabecalho e exclusao logica por lapide.</p>"
+                + "<p>Sistema web para uma loja online com relacionamento N:N Pedido-Produto, persistencia binaria com lapide e recuperacao ordenada por Arvore B+.</p>"
                 + "<div class='stats'>"
-                + "<div class='stat'><strong>4</strong><span>modulos centrais: clientes, produtos, cupons e pedidos.</span></div>"
+                + "<div class='stat'><strong>N:N</strong><span>itens persistidos na tabela associativa PedidoProduto.</span></div>"
                 + "<div class='stat'><strong>MVC</strong><span>arquitetura separando interface, regras de negocio e persistencia.</span></div>"
-                + "<div class='stat'><strong>Binario</strong><span>armazenamento local com controle de ultimo ID e lapide.</span></div>"
+                + "<div class='stat'><strong>B+</strong><span>catalogo recuperado em ordem diretamente pelo indice.</span></div>"
                 + "</div>"
                 + "</section>"
                 + "<div class='grid'>"
@@ -168,7 +171,7 @@ public class App {
                 return;
             }
             String msg = query(ex).getOrDefault("msg", "");
-            List<Produto> produtos = produtoController.listarAtivos();
+            List<Produto> produtos = produtoController.listarOrdenadosPorId();
             StringBuilder rows = new StringBuilder();
             for (Produto p : produtos) {
                 rows.append("<tr><td>").append(p.getId()).append("</td><td>")
@@ -180,7 +183,7 @@ public class App {
                 + "<section class='hero'>"
                 + "<span class='eyebrow'>Catalogo</span>"
                 + "<h1>Produtos da Loja Online</h1>"
-                + "<p>Gerencie os itens do ecommerce com preco e estoque para garantir pedidos consistentes.</p>"
+                + "<p>Gerencie os itens do ecommerce. A tabela abaixo e percorrida em ordem de ID pela Arvore B+ persistente, sem ordenacao em memoria.</p>"
                 + "</section>"
                 + "<h2 class='section-title'>Gestao de catalogo</h2>"
                 + "<div class='grid'>"
@@ -215,7 +218,7 @@ public class App {
                 + "</div>"
                 + "</div>"
                 + "<div class='card'>"
-                + "<h2>Produtos ativos</h2>"
+                + "<h2>Produtos ativos em ordem (B+)</h2>"
                 + "<table><tr><th>ID</th><th>Nome</th><th>Preco</th><th>Estoque</th></tr>"
                 + rows + "</table></div>"));
         });
@@ -353,6 +356,8 @@ public class App {
             }
             String msg = query(ex).getOrDefault("msg", "");
             String pedidosCliente = query(ex).getOrDefault("pedidosCliente", "");
+            String itensPedido = query(ex).getOrDefault("itensPedido", "");
+            String pedidosProduto = query(ex).getOrDefault("pedidosProduto", "");
             List<Pedido> pedidos = pedidoController.listarAtivos();
             StringBuilder rows = new StringBuilder();
             for (Pedido p : pedidos) {
@@ -361,14 +366,14 @@ public class App {
                     .append(p.getIdCupom()).append("</td><td>")
                     .append(escape(p.getDataPedido())).append("</td><td>")
                     .append(p.getValorTotal()).append("</td><td>")
-                    .append(itensToString(p)).append("</td></tr>");
+                    .append(itensToString(pedidoController.listarItensDoPedido(p.getId()))).append("</td></tr>");
             }
 
             sendHtml(ex, HtmlView.page("Pedidos", HtmlView.nav() + msgBox(msg)
                 + "<section class='hero'>"
                 + "<span class='eyebrow'>Operacao</span>"
                 + "<h1>Pedidos da Loja Online</h1>"
-                + "<p>Monte compras com multiplos produtos, aplique cupons e acompanhe os registros ativos armazenados em arquivo binario.</p>"
+                + "<p>Monte compras com multiplos produtos. Cada item e armazenado na tabela associativa PedidoProduto, cuja chave primaria e (idPedido, idProduto).</p>"
                 + "</section>"
                 + "<h2 class='section-title'>Gestao de pedidos</h2>"
                 + "<div class='grid'>"
@@ -420,6 +425,24 @@ public class App {
                 + "</form>"
                 + (!pedidosCliente.isEmpty() ? "<div class='result-block'><strong>Relacionamento 1:N:</strong><br>" + escape(pedidosCliente) + "</div>" : "")
                 + "</div>"
+                + "<div class='card'>"
+                + "<h2>Produtos de um pedido</h2>"
+                + "<p class='lede'>Navegue de Pedido para Produto atraves da chave composta da tabela associativa.</p>"
+                + "<form method='post' action='/pedidos/itens'>"
+                + "<label>ID Pedido</label><input name='idPedido' required>"
+                + "<button type='submit'>Listar produtos do pedido</button>"
+                + "</form>"
+                + (!itensPedido.isEmpty() ? "<div class='result-block'><strong>Pedido -> Produtos:</strong><br>" + escape(itensPedido) + "</div>" : "")
+                + "</div>"
+                + "<div class='card'>"
+                + "<h2>Pedidos de um produto</h2>"
+                + "<p class='lede'>Navegue de Produto para Pedido usando o indice secundario B+ da associacao N:N.</p>"
+                + "<form method='post' action='/pedidos/by-produto'>"
+                + "<label>ID Produto</label><input name='idProduto' required>"
+                + "<button type='submit'>Listar pedidos do produto</button>"
+                + "</form>"
+                + (!pedidosProduto.isEmpty() ? "<div class='result-block'><strong>Produto -> Pedidos:</strong><br>" + escape(pedidosProduto) + "</div>" : "")
+                + "</div>"
                 + "</div>"
                 + "<div class='card'>"
                 + "<h2>Pedidos ativos</h2>"
@@ -466,7 +489,7 @@ public class App {
             if (p == null) {
                 throw new IllegalArgumentException("Pedido nao encontrado.");
             }
-            return p.toString();
+            return p.toString() + " | Itens N:N: " + itensToString(pedidoController.listarItensDoPedido(p.getId()));
         }));
         server.createContext("/pedidos/by-cliente", ex -> handlePost(ex, "/pedidos", data -> {
             int idCliente = parseInt(data.get("idCliente"), "ID do cliente");
@@ -476,22 +499,42 @@ public class App {
                 : pedidosDoCliente.stream().map(Pedido::toString).reduce((a, b) -> a + " | " + b).orElse("");
             return "__REDIRECT__pedidosCliente=" + encode(descricao);
         }));
+        server.createContext("/pedidos/itens", ex -> handlePost(ex, "/pedidos", data -> {
+            int idPedido = parseInt(data.get("idPedido"), "ID do pedido");
+            Pedido pedido = pedidoController.consultarPorId(idPedido);
+            if (pedido == null) {
+                throw new IllegalArgumentException("Pedido nao encontrado.");
+            }
+            List<PedidoProduto> itens = pedidoController.listarItensDoPedido(idPedido);
+            String descricao = itens.isEmpty()
+                ? "Nenhum produto associado ao pedido " + idPedido + "."
+                : itensToString(itens);
+            return "__REDIRECT__itensPedido=" + encode(descricao);
+        }));
+        server.createContext("/pedidos/by-produto", ex -> handlePost(ex, "/pedidos", data -> {
+            int idProduto = parseInt(data.get("idProduto"), "ID do produto");
+            List<Pedido> pedidosDoProduto = pedidoController.listarPorProduto(idProduto);
+            String descricao = pedidosDoProduto.isEmpty()
+                ? "Nenhum pedido ativo contem o produto " + idProduto + "."
+                : pedidosDoProduto.stream().map(p -> "Pedido " + p.getId())
+                    .reduce((a, b) -> a + ", " + b).orElse("");
+            return "__REDIRECT__pedidosProduto=" + encode(descricao);
+        }));
 
         server.start();
         System.out.println("Server rodando em: http://localhost:18080");
     }
 
-    private static String itensToString(Pedido p) {
-        int[] ids = p.getIdsProdutos();
-        int[] qtd = p.getQuantidades();
+    private static String itensToString(List<PedidoProduto> itens) {
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < ids.length; i++) {
+        for (int i = 0; i < itens.size(); i++) {
             if (i > 0) {
                 sb.append(", ");
             }
-            sb.append(ids[i]).append("x").append(qtd[i]);
+            PedidoProduto item = itens.get(i);
+            sb.append(item.getIdProduto()).append("x").append(item.getQuantidade());
         }
-        return sb.toString();
+        return sb.length() == 0 ? "Sem itens" : sb.toString();
     }
 
     private static void handlePost(HttpExchange ex, String redirectPath, PostAction action) throws IOException {

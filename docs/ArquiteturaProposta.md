@@ -16,6 +16,7 @@ As responsabilidades foram separadas da seguinte forma:
   - `Produto.java`
   - `Pedido.java`
   - `Cupom.java`
+  - `PedidoProduto.java`
   - `Registro.java`
 - `DAO/`
   - `ArquivoDAO.java`
@@ -23,6 +24,8 @@ As responsabilidades foram separadas da seguinte forma:
   - `ProdutoDAO.java`
   - `PedidoDAO.java`
   - `CupomDAO.java`
+  - `PedidoProdutoDAO.java`
+  - `BPlusTreeIndex.java`
   - `RegistroFactory.java`
 - `Controller/`
   - `ClienteController.java`
@@ -38,6 +41,7 @@ As responsabilidades foram separadas da seguinte forma:
   - `produtos.db`
   - `cupons.db`
   - `pedidos.db`
+  - `pedido_produto.db`
 
 ## 3. Persistencia em arquivos binarios
 Cada arquivo binario possui:
@@ -68,6 +72,9 @@ Formato logico de armazenamento:
 - O cupom so pode ser associado se estiver ativo.
 - O pedido nao aceita um segundo cupom.
 - O valor total do pedido e recalculado com desconto na associacao do cupom.
+- Os itens sao persistidos em `PedidoProduto`, com PK composta `(idPedido, idProduto)`.
+- A exclusao de pedido remove logicamente seus itens e devolve estoque.
+- Um produto associado a pedido ativo nao pode ser excluido.
 
 ## 5. Interface e rotas principais
 - `GET /`: pagina inicial.
@@ -79,6 +86,7 @@ Formato logico de armazenamento:
 - `POST /cupons/create`, `/cupons/update`, `/cupons/delete`, `/cupons/find`.
 - `GET /pedidos`: tela de pedidos.
 - `POST /pedidos/create`, `/pedidos/associar-cupom`, `/pedidos/delete`, `/pedidos/find`.
+- `POST /pedidos/itens`, `/pedidos/by-produto`: navegacao N:N nos dois sentidos.
 - `GET /styles.css`: folha de estilo servida pela aplicacao.
 
 ## 6. Diagrama de arquitetura em camadas
@@ -101,11 +109,14 @@ flowchart TD
     PC --> D2[ProdutoDAO]
     CuC --> D3[CupomDAO]
     PeC --> D4[PedidoDAO]
+    PeC --> D5[PedidoProdutoDAO]
 
     D1 --> A1[ArquivoDAO]
     D2 --> A1
     D3 --> A1
     D4 --> A1
+    D5 --> B1[BPlusTreeIndex<br/>N:N nos dois sentidos]
+    D2 --> B2[BPlusTreeIndex<br/>produtos ordenados]
 
     A1 --> H1[ExtensibleHashIndex<br/>indices primarios]
     D4 --> R1[PedidoClienteIndexDAO<br/>hash 1:N]
@@ -114,6 +125,7 @@ flowchart TD
     D2 --> F2[(produtos.db)]
     D3 --> F3[(cupons.db)]
     D4 --> F4[(pedidos.db)]
+    D5 --> F5[(pedido_produto.db)]
 
     H1 --> I1[(clientes.db.pk.dir.db)]
     H1 --> I2[(clientes.db.pk.buckets.db)]
@@ -127,6 +139,8 @@ flowchart TD
     R1 --> R2[(pedidos.db.cliente_pedidos.dir.db)]
     R1 --> R3[(pedidos.db.cliente_pedidos.buckets.db)]
     R1 --> R4[(pedidos.db.cliente_pedidos.list.db)]
+    B1 --> B3[(pedido_produto.*.bplus.db)]
+    B2 --> B4[(produtos.db.ordem_id.bplus.db)]
 ```
 
 ## 6.1 Refinamento da Fase II
@@ -143,6 +157,15 @@ O diagrama foi refinado para evidenciar componentes que se tornaram obrigatorios
 4. O controller aplica validacoes e regras de negocio.
 5. O DAO realiza a leitura ou escrita no arquivo binario.
 6. A resposta HTML e devolvida ao navegador.
+
+## 7.1 Evolucao da Fase III
+`PedidoProdutoDAO` implementa a tabela associativa real entre `Pedido` e `Produto`.
+O arquivo segue o formato de cabecalho, lapide, tamanho e payload adotado nas
+outras tabelas. Duas Arvores B+ persistidas indexam as composicoes
+`(idPedido, idProduto)` e `(idProduto, idPedido)`, permitindo navegar no N:N
+sem varredura total. Uma terceira Arvore B+ em `ProdutoDAO` fornece a
+listagem ordenada mostrada em `/produtos`, percorrendo folhas encadeadas e
+sem aplicar ordenacao em memoria.
 
 ## 8. Execucao
 - Classe principal: `Main.App`

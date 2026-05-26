@@ -1,6 +1,7 @@
 package Controller;
 
 import DAO.ProdutoDAO;
+import DAO.PedidoProdutoDAO;
 import Model.Produto;
 import java.io.IOException;
 import java.util.List;
@@ -8,9 +9,11 @@ import java.util.List;
 public class ProdutoController {
 
     private final ProdutoDAO dao;
+    private final PedidoProdutoDAO pedidoProdutoDAO;
 
-    public ProdutoController(ProdutoDAO dao) {
+    public ProdutoController(ProdutoDAO dao, PedidoProdutoDAO pedidoProdutoDAO) {
         this.dao = dao;
+        this.pedidoProdutoDAO = pedidoProdutoDAO;
     }
 
     public Produto cadastrar(String nome, double preco, int estoque) throws IOException {
@@ -32,7 +35,14 @@ public class ProdutoController {
         return dao.listActive();
     }
 
+    public List<Produto> listarOrdenadosPorId() throws IOException {
+        return dao.listOrderedById();
+    }
+
     public boolean excluir(int id) throws IOException {
+        if (!pedidoProdutoDAO.listByProduto(id).isEmpty()) {
+            throw new IllegalArgumentException("Produto possui itens em pedidos ativos e nao pode ser excluido.");
+        }
         return dao.delete(id);
     }
 
