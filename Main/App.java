@@ -14,6 +14,8 @@ import Model.Cupom;
 import Model.Pedido;
 import Model.PedidoProduto;
 import Model.Produto;
+import Util.BackupService;
+import Util.CompressionResult;
 import View.HtmlView;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
@@ -29,12 +31,16 @@ import java.util.Map;
 
 public class App {
 
+    private static final String DATA_PATH = "data";
+    private static final String HUFFMAN_BACKUP_PATH = "backups/fase4_huffman.huff";
+    private static final String LZW_BACKUP_PATH = "backups/fase4_lzw.lzw";
+
     public static void main(String[] args) throws Exception {
-        ClienteDAO clienteDAO = new ClienteDAO("data/clientes.db");
-        ProdutoDAO produtoDAO = new ProdutoDAO("data/produtos.db");
-        CupomDAO cupomDAO = new CupomDAO("data/cupons.db");
-        PedidoDAO pedidoDAO = new PedidoDAO("data/pedidos.db");
-        PedidoProdutoDAO pedidoProdutoDAO = new PedidoProdutoDAO("data/pedido_produto.db");
+        ClienteDAO clienteDAO = new ClienteDAO(DATA_PATH + "/clientes.db");
+        ProdutoDAO produtoDAO = new ProdutoDAO(DATA_PATH + "/produtos.db");
+        CupomDAO cupomDAO = new CupomDAO(DATA_PATH + "/cupons.db");
+        PedidoDAO pedidoDAO = new PedidoDAO(DATA_PATH + "/pedidos.db");
+        PedidoProdutoDAO pedidoProdutoDAO = new PedidoProdutoDAO(DATA_PATH + "/pedido_produto.db");
 
         ClienteController clienteController = new ClienteController(clienteDAO);
         ProdutoController produtoController = new ProdutoController(produtoDAO, pedidoProdutoDAO);
@@ -521,6 +527,54 @@ public class App {
             return "__REDIRECT__pedidosProduto=" + encode(descricao);
         }));
 
+        server.createContext("/compressao", ex -> {
+            if (!"GET".equals(ex.getRequestMethod())) {
+                sendText(ex, 405, "Metodo nao permitido");
+                return;
+            }
+            String msg = query(ex).getOrDefault("msg", "");
+            String result = query(ex).getOrDefault("result", "");
+            long rawSize = BackupService.rawDataSize(DATA_PATH);
+            int fileCount = BackupService.dataFileCount(DATA_PATH);
+            sendHtml(ex, HtmlView.page("Compressao", HtmlView.nav() + msgBox(msg)
+                + "<section class='hero'>"
+                + "<span class='eyebrow'>Fase IV</span>"
+                + "<h1>Backup compactado dos dados</h1>"
+                + "<p>Gere um unico arquivo compactado contendo os arquivos binarios usados pelo aplicativo, incluindo bases principais e indices persistentes.</p>"
+                + "<div class='stats'>"
+                + "<div class='stat'><strong>" + fileCount + "</strong><span>arquivos .db incluidos no backup completo.</span></div>"
+                + "<div class='stat'><strong>" + formatBytes(rawSize) + "</strong><span>soma dos arquivos de dados antes do empacotamento.</span></div>"
+                + "</div>"
+                + "</section>"
+                + "<div class='grid'>"
+                + "<div class='card'>"
+                + "<h2>Huffman</h2>"
+                + "<p class='lede'>Cria o pacote unico dos arquivos de dados e aplica codificacao de Huffman sobre o pacote completo.</p>"
+                + "<form method='post' action='/compressao/huffman'>"
+                + "<button type='submit'>Gerar backup Huffman</button>"
+                + "</form>"
+                + "</div>"
+                + "<div class='card'>"
+                + "<h2>LZW</h2>"
+                + "<p class='lede'>Cria o mesmo pacote unico dos arquivos de dados e aplica LZW sobre o pacote completo.</p>"
+                + "<form method='post' action='/compressao/lzw'>"
+                + "<button type='submit'>Gerar backup LZW</button>"
+                + "</form>"
+                + "</div>"
+                + "</div>"
+                + (!result.isEmpty() ? "<div class='card'><h2>Resultado</h2>" + result + "</div>" : "")));
+        });
+
+        server.createContext("/compressao/huffman", ex -> handlePost(ex, "/compressao", data -> {
+            CompressionResult result = BackupService.createHuffmanBackup(DATA_PATH, HUFFMAN_BACKUP_PATH);
+            return "__REDIRECT__result=" + encode(formatCompressionResult(result));
+        }));
+
+        server.createContext("/compressao/lzw", ex -> handlePost(ex, "/compressao", data -> {
+            CompressionResult result = BackupService.createLzwBackup(DATA_PATH, LZW_BACKUP_PATH);
+            return "__REDIRECT__result=" + encode(formatCompressionResult(result));
+        }));
+
         server.start();
         System.out.println("Server rodando em: http://localhost:18080");
     }
@@ -596,6 +650,26 @@ public class App {
 
     private static String msgBox(String msg) {
         return HtmlView.msgBox(msg, escape(msg));
+    }
+
+    private static String formatCompressionResult(CompressionResult result) {
+        return "<table>"
+            + "<tr><th>Algoritmo</th><td>" + escape(result.getAlgorithm()) + "</td></tr>"
+            + "<tr><th>Arquivo gerado</th><td>" + escape(result.getOutputPath()) + "</td></tr>"
+            + "<tr><th>Tamanho original</th><td>" + result.getOriginalSize() + " bytes (" + formatBytes(result.getOriginalSize()) + ")</td></tr>"
+            + "<tr><th>Tamanho comprimido</th><td>" + result.getCompressedSize() + " bytes (" + formatBytes(result.getCompressedSize()) + ")</td></tr>"
+            + "<tr><th>Calculo da taxa</th><td>1 - (" + result.getCompressedSize() + " / " + result.getOriginalSize() + ") = "
+            + String.format("%.2f%%", result.getCompressionRate()) + "</td></tr>"
+            + "<tr><th>Interpretacao</th><td>" + escape(result.getInterpretation()) + "</td></tr>"
+            + "<tr><th>Integridade</th><td>" + (result.isVerified() ? "Backup descompactado e conferido byte a byte." : "Falha na verificacao.") + "</td></tr>"
+            + "</table>";
+    }
+
+    private static String formatBytes(long bytes) {
+        if (bytes < 1024) {
+            return bytes + " B";
+        }
+        return String.format("%.2f KB", bytes / 1024.0);
     }
 
     private static void sendHtml(HttpExchange ex, String html) throws IOException {

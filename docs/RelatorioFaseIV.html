@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Loja Online - Relatorio Tecnico - Fase IV</title>
+<style>
+@page { size: A4; margin: 18mm 16mm; }
+* { box-sizing: border-box; }
+body { font: 11pt Arial, sans-serif; line-height: 1.42; color: #17243d; margin: 0; }
+h1 { color: #163d86; font-size: 25pt; margin: 0 0 5mm; }
+h2 { color: #1d4ed8; font-size: 16pt; margin: 8mm 0 3mm; border-bottom: 1px solid #ccdbf7; padding-bottom: 2mm; }
+h3 { color: #163d86; font-size: 12pt; margin: 5mm 0 2mm; }
+p, li { margin: 0 0 2.4mm; }
+ul { margin: 2mm 0 3mm 6mm; padding-left: 5mm; }
+code { background: #edf3ff; border-radius: 3px; padding: 1px 4px; font: 10pt Consolas, monospace; }
+pre { background: #f1f6ff; border: 1px solid #ccdbf7; border-radius: 6px; padding: 4mm; white-space: pre-wrap; font: 9.5pt Consolas, monospace; }
+table { width: 100%; border-collapse: collapse; margin: 3mm 0 5mm; font-size: 10pt; }
+th, td { border: 1px solid #ccdbf7; padding: 2.5mm; vertical-align: top; }
+th { background: #e6efff; color: #163d86; text-align: left; }
+.cover { padding-top: 30mm; min-height: 245mm; }
+.tag { display: inline-block; color: #1d4ed8; background: #e6efff; border-radius: 20px; padding: 2mm 4mm; font-weight: bold; margin-bottom: 7mm; }
+.summary { margin-top: 15mm; border-left: 4px solid #2563eb; padding: 4mm 6mm; background: #f5f8ff; }
+.break { page-break-before: always; }
+.small { color: #516078; font-size: 9.5pt; }
+</style>
+</head>
+<body>
+<section class="cover">
+  <div class="tag">TRABALHO PRATICO - FASE IV</div>
+  <h1>Loja Online</h1>
+  <h2>Relatorio Tecnico de Compressao</h2>
+  <p><strong>Arquitetura:</strong> MVC + DAO em Java, com interface web local</p>
+  <p><strong>Persistencia:</strong> arquivos binarios com cabecalho, lapide e indices persistentes</p>
+  <p><strong>Evolucao:</strong> backup compactado em arquivo unico usando Huffman e LZW</p>
+  <div class="summary">
+    A Fase IV compacta todos os arquivos <code>.db</code> usados pelo aplicativo
+    em um unico backup. O sistema primeiro empacota os dados e indices em um
+    fluxo binario completo e depois aplica Huffman ou LZW sobre esse arquivo
+    logico, preservando o funcionamento das etapas anteriores.
+  </div>
+</section>
+
+<h2>1. Objetivo</h2>
+<p>A Fase IV acrescenta compressao aos arquivos de dados do sistema sem alterar o CRUD, os indices, a exclusao logica ou o relacionamento <code>Pedido N:N Produto</code>.</p>
+<p>A compactacao foi implementada no nivel de arquivo, funcionando como um backup completo. O aplicativo gera um unico arquivo compactado contendo os arquivos utilizados pela aplicacao.</p>
+
+<h2>2. Arquivos compactados</h2>
+<p>Foram incluidos todos os arquivos <code>.db</code> de <code>data/</code>, abrangendo bases principais e indices:</p>
+<ul>
+  <li><code>clientes.db</code> e seus indices de hash extensivel.</li>
+  <li><code>produtos.db</code>, indice primario e indice B+ de ordenacao.</li>
+  <li><code>cupons.db</code> e seus indices.</li>
+  <li><code>pedidos.db</code>, indice primario e indices do relacionamento cliente-pedidos.</li>
+  <li><code>pedido_produto.db</code> e os indices B+ por pedido e por produto.</li>
+</ul>
+
+<h2>3. Empacotamento unico</h2>
+<p>A classe <code>Util.DataArchive</code> cria o arquivo original logico usado pelos dois algoritmos. Esse pacote armazena assinatura, quantidade de arquivos, nome relativo, tamanho e conteudo de cada arquivo.</p>
+<pre>[assinatura TPDB1]
+[quantidade de arquivos]
+[tamanho do nome][nome relativo][tamanho do arquivo][bytes do arquivo]
+...</pre>
+<p>Com isso, Huffman e LZW comprimem exatamente a mesma entrada, e o resultado final continua sendo apenas um arquivo compactado por algoritmo.</p>
+
+<h2>4. Algoritmos implementados</h2>
+<h3>4.1 Huffman</h3>
+<p><code>Util.HuffmanCompressor</code> calcula a frequencia de cada byte, monta uma arvore de Huffman com fila de prioridade e grava um cabecalho com o tamanho original e as frequencias necessarias para reconstruir a arvore.</p>
+<p>Arquivo gerado: <code>backups/fase4_huffman.huff</code></p>
+
+<h3>4.2 LZW</h3>
+<p><code>Util.LZWCompressor</code> inicia o dicionario com os 256 bytes possiveis e substitui sequencias repetidas por codigos de 16 bits. O dicionario foi limitado a 65.536 entradas para manter cada codigo em dois bytes.</p>
+<p>Arquivo gerado: <code>backups/fase4_lzw.lzw</code></p>
+
+<h2 class="break">5. Formulario tecnico</h2>
+<h3>1. Qual foi a taxa de compressao obtida com o algoritmo de Huffman?</h3>
+<table>
+  <tr><th>Item</th><th>Valor</th></tr>
+  <tr><td>Tamanho do arquivo original</td><td><code>4461 bytes</code></td></tr>
+  <tr><td>Tamanho do arquivo comprimido</td><td><code>2925 bytes</code></td></tr>
+  <tr><td>Calculo da taxa</td><td><code>1 - (2925 / 4461) = 0,3443 = 34,43%</code></td></tr>
+  <tr><td>Interpretacao</td><td>O Huffman reduziu o pacote em <strong>34,43%</strong>. O resultado e positivo porque os arquivos binarios possuem muitos bytes repetidos, especialmente zeros, cabecalhos pequenos e estruturas de indice com campos vazios. A taxa nao e maior porque o backup e pequeno e o Huffman grava metadados de frequencia no proprio arquivo compactado.</td></tr>
+</table>
+
+<h3>2. Qual foi a taxa de compressao obtida com o algoritmo de LZW?</h3>
+<table>
+  <tr><th>Item</th><th>Valor</th></tr>
+  <tr><td>Tamanho do arquivo original</td><td><code>4461 bytes</code></td></tr>
+  <tr><td>Tamanho do arquivo comprimido</td><td><code>2422 bytes</code></td></tr>
+  <tr><td>Calculo da taxa</td><td><code>1 - (2422 / 4461) = 0,4571 = 45,71%</code></td></tr>
+  <tr><td>Interpretacao</td><td>O LZW reduziu o pacote em <strong>45,71%</strong>, ficando melhor que Huffman nesta base. Isso ocorreu porque o pacote contem sequencias repetidas de bytes e padroes estruturais dos arquivos <code>.db</code> e dos indices.</td></tr>
+</table>
+
+<h3>3. Quais dificuldades surgiram ao implementar Huffman e LZW e como voce resolveu?</h3>
+<p>A primeira dificuldade foi atender ao requisito de gerar um unico arquivo compactado sem comprimir cada tabela separadamente. A solucao foi criar <code>DataArchive</code>, um formato simples de empacotamento que junta todos os <code>.db</code> em um unico fluxo antes da compressao.</p>
+<p>No Huffman, o cuidado principal foi gravar metadados suficientes para descompactar depois. Para resolver isso, o arquivo compactado armazena o tamanho original e a tabela de frequencias dos bytes presentes, permitindo reconstruir a mesma arvore na leitura.</p>
+<p>No LZW, a maior atencao foi manter o dicionario limitado para que cada codigo coubesse em 16 bits. O dicionario foi limitado a 65.536 entradas, e a descompressao trata o caso especial em que o codigo recebido e igual ao proximo indice do dicionario.</p>
+<p>Por fim, para preservar a integridade, os dois algoritmos foram testados com descompressao imediata e comparacao byte a byte com o pacote original.</p>
+
+<h2>6. Resultado da verificacao</h2>
+<table>
+  <tr><th>Algoritmo</th><th>Original</th><th>Comprimido</th><th>Taxa</th><th>Integridade</th></tr>
+  <tr><td>Huffman</td><td>4461 bytes</td><td>2925 bytes</td><td>34,43%</td><td>Verificado</td></tr>
+  <tr><td>LZW</td><td>4461 bytes</td><td>2422 bytes</td><td>45,71%</td><td>Verificado</td></tr>
+</table>
+<p>A verificacao foi feita pelo CLI <code>Util.BackupCli</code>, que gera os backups, descompacta em memoria e compara byte a byte com o pacote original.</p>
+
+<h2>7. Exemplo de compressao</h2>
+<p>Os arquivos <code>backups/fase4_huffman.huff</code> e <code>backups/fase4_lzw.lzw</code> ja sao exemplos reais gerados pelo sistema. Eles nao sao legiveis diretamente em editor de texto porque armazenam dados binarios compactados. O conteudo deles corresponde ao pacote unico criado a partir dos arquivos <code>.db</code> da pasta <code>data/</code>.</p>
+<table>
+  <tr><th>Arquivo compactado</th><th>Algoritmo</th><th>Entrada usada</th><th>Tamanho final</th></tr>
+  <tr><td><code>backups/fase4_huffman.huff</code></td><td>Huffman</td><td>Pacote unico com 19 arquivos <code>.db</code></td><td>2925 bytes</td></tr>
+  <tr><td><code>backups/fase4_lzw.lzw</code></td><td>LZW</td><td>Pacote unico com 19 arquivos <code>.db</code></td><td>2422 bytes</td></tr>
+</table>
+<p>Para visualizar a ideia dos algoritmos, considere a sequencia didatica:</p>
+<pre>BANANA_BANANA</pre>
+<p>No Huffman, os simbolos mais frequentes recebem codigos menores. Nessa sequencia, <code>A</code> e <code>N</code> aparecem mais vezes que <code>B</code> e <code>_</code>, entao tenderiam a receber codigos binarios mais curtos. O ganho vem da troca de bytes fixos por codigos de tamanho variavel.</p>
+<p>No LZW, o compressor cria entradas para sequencias repetidas. Depois de ler partes como <code>BA</code>, <code>AN</code>, <code>NA</code> e <code>ANA</code>, a segunda ocorrencia de <code>BANANA</code> pode ser representada por codigos de dicionario, reduzindo a repeticao literal dos bytes.</p>
+
+<h2>8. Como executar</h2>
+<pre>New-Item -ItemType Directory -Force out\classes | Out-Null
+$sources = Get-ChildItem -Recurse -Filter *.java -Path Controller,DAO,Main,Model,Util,View | ForEach-Object { $_.FullName }
+javac --release 8 -d out\classes $sources
+java -cp out\classes Util.BackupCli</pre>
+<p>Pela interface web, execute o servidor com <code>java -cp out\classes Main.App</code> e acesse <code>http://localhost:18080/compressao</code>.</p>
+
+<h2>9. Conclusao</h2>
+<p>A Fase IV foi implementada como backup completo em arquivo unico. A compressao atua apenas sobre uma copia empacotada dos dados e indices, entao o funcionamento das fases anteriores permanece preservado. Huffman e LZW foram implementados sem bibliotecas externas e com verificacao de integridade por descompressao.</p>
+<p class="small">Documento preparado para a entrega da Fase IV em 05/06/2026.</p>
+</body>
+</html>

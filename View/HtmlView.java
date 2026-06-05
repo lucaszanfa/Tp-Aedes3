@@ -229,6 +229,7 @@ public final class HtmlView {
             + "  <a href='/produtos'>Catalogo</a>\n"
             + "  <a href='/cupons'>Cupons</a>\n"
             + "  <a href='/pedidos'>Pedidos</a>\n"
+            + "  <a href='/compressao'>Compressao</a>\n"
             + "</nav>\n";
     }
 

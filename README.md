@@ -1,6 +1,6 @@
-# Loja Online - TP - Fase III
+# Loja Online - TP - Fase IV
 
-Aplicacao Java com `MVC + DAO`, persistencia binaria e interface web local. A Fase III implementa o relacionamento `Pedido N:N Produto` por meio da tabela associativa `PedidoProduto`, com chave primaria composta e indices B+ persistentes para navegacao e consulta ordenada.
+Aplicacao Java com `MVC + DAO`, persistencia binaria, interface web local e backup compactado dos arquivos de dados. A Fase IV preserva CRUD, indices e relacionamentos das fases anteriores e acrescenta compressao em arquivo unico usando Huffman e LZW.
 
 ## Estrutura
 - `Model/`: entidades de dominio e interface `Registro`.
@@ -11,8 +11,9 @@ Aplicacao Java com `MVC + DAO`, persistencia binaria e interface web local. A Fa
 - `Util/`: serializacao binaria de strings e blocos multivalorados.
 - `docs/`: documentacao tecnica e respostas do formulario.
 - `data/`: arquivos de dados e indices persistidos entre execucoes.
+- `backups/`: arquivos compactados gerados pela Fase IV.
 
-## Entregas da Fase III atendidas
+## Entregas atendidas
 - CRUD completo para `Cliente`, `Produto`, `Cupom` e `Pedido`.
 - Indice primario persistente para todas as tabelas.
 - Relacionamento `Pedido N:N Produto` implementado por `PedidoProduto`.
@@ -23,6 +24,10 @@ Aplicacao Java com `MVC + DAO`, persistencia binaria e interface web local. A Fa
 - Exclusao logica por lapide.
 - Front-end web para todas as operacoes principais.
 - Validacao de entradas e mensagens de erro para casos comuns.
+- Backup completo em arquivo unico com todos os arquivos `.db` usados pelo aplicativo.
+- Compressao de arquivo usando Huffman.
+- Compressao de arquivo usando LZW.
+- Verificacao de integridade por descompressao e comparacao byte a byte.
 
 ## Persistencia em disco
 Arquivos de dados:
@@ -53,6 +58,17 @@ Arquivos da Fase III:
 - `data/produtos.db.ordem_id.bplus.db`: B+ da consulta ordenada do catalogo.
 - `data/pedidos.db.cliente_pedidos.list.db`
 
+## Compressao da Fase IV
+O backup e feito em duas etapas:
+1. `Util.DataArchive` empacota todos os arquivos `.db` de `data/` em um unico fluxo binario, preservando nome relativo, tamanho e conteudo.
+2. `Util.HuffmanCompressor` ou `Util.LZWCompressor` comprime esse pacote completo, gerando um unico arquivo final.
+
+Arquivos gerados:
+- `backups/fase4_huffman.huff`
+- `backups/fase4_lzw.lzw`
+
+Tambem ha uma rota web em `/compressao` para gerar os backups e visualizar tamanho original, tamanho comprimido, calculo da taxa e verificacao de integridade.
+
 ## Como compilar e executar
 O runtime disponivel e Java 8; compile para uma pasta de build com compatibilidade Java 8:
 ```powershell
@@ -69,14 +85,21 @@ java -cp out\classes Main.App
 Abrir no navegador:
 `http://localhost:18080`
 
+Gerar os backups por linha de comando:
+```powershell
+java -cp out\classes Util.BackupCli
+```
+
 ## Funcionalidades da interface
 - `/clientes`: CRUD e listagem de clientes.
 - `/produtos`: CRUD e listagem ordenada pela Arvore B+.
 - `/cupons`: CRUD e listagem de cupons.
 - `/pedidos`: CRUD, cupom, consulta `Cliente -> Pedidos` e navegacao N:N nos dois sentidos.
+- `/compressao`: backup unico dos dados com Huffman e LZW.
 
 ## Documentacao
 - `docs/RelatorioFaseIII.md`
+- `docs/RelatorioFaseIV.md`
 - `docs/RelatorioFaseIII.pdf`
 - `docs/ArquiteturaProposta.md`
 - `docs/DER.md`
