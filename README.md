@@ -1,6 +1,10 @@
-# Loja Online - TP - Fase IV
+# Loja Online - TP - Fase V
 
-Aplicacao Java com `MVC + DAO`, persistencia binaria, interface web local e backup compactado dos arquivos de dados. A Fase IV preserva CRUD, indices e relacionamentos das fases anteriores e acrescenta compressao em arquivo unico usando Huffman e LZW.
+Aplicacao Java com `MVC + DAO`, persistencia binaria, interface web local, backup compactado dos arquivos de dados, casamento de padroes e criptografia XOR. A Fase V preserva CRUD, indices, relacionamentos e compressao das fases anteriores e acrescenta pesquisa textual com KMP/Boyer-Moore e criptografia de campo sensivel.
+
+Repositorio GitHub: <https://github.com/lucaszanfa/Tp-Aedes3>
+
+Video explicativo da Fase V: <https://youtu.be/dXa_AAKLjUk>
 
 ## Estrutura
 - `Model/`: entidades de dominio e interface `Registro`.
@@ -8,7 +12,7 @@ Aplicacao Java com `MVC + DAO`, persistencia binaria, interface web local e back
 - `Controller/`: validacoes, regras de negocio e integridade referencial.
 - `View/`: HTML/CSS da interface web.
 - `Main/`: servidor HTTP e rotas.
-- `Util/`: serializacao binaria de strings e blocos multivalorados.
+- `Util/`: serializacao binaria, casamento de padroes, criptografia e compressao.
 - `docs/`: documentacao tecnica e respostas do formulario.
 - `data/`: arquivos de dados e indices persistidos entre execucoes.
 - `backups/`: arquivos compactados gerados pela Fase IV.
@@ -28,6 +32,11 @@ Aplicacao Java com `MVC + DAO`, persistencia binaria, interface web local e back
 - Compressao de arquivo usando Huffman.
 - Compressao de arquivo usando LZW.
 - Verificacao de integridade por descompressao e comparacao byte a byte.
+- Pesquisa por padrao no campo textual `Produto.nome`.
+- Implementacao completa de KMP (Knuth-Morris-Pratt).
+- Implementacao completa de Boyer-Moore com heuristica bad character.
+- Interface web em `/pesquisa` com escolha do algoritmo e exibicao dos registros encontrados.
+- Criptografia XOR aplicada ao campo sensivel `Cliente.email`.
 
 ## Persistencia em disco
 Arquivos de dados:
@@ -69,6 +78,21 @@ Arquivos gerados:
 
 Tambem ha uma rota web em `/compressao` para gerar os backups e visualizar tamanho original, tamanho comprimido, calculo da taxa e verificacao de integridade.
 
+## Casamento de padroes e criptografia
+Os algoritmos de busca estao em `Util/PatternMatcher.java`:
+- `containsKmp(text, pattern)`: usa a tabela LPS para evitar retrocesso no texto.
+- `containsBoyerMoore(text, pattern)`: usa a tabela bad character para deslocar o padrao quando ocorre divergencia.
+
+A integracao com a base esta em `Controller/PesquisaController.java`. A pesquisa percorre os produtos ativos e aplica o algoritmo escolhido sobre `Produto.nome`, ignorando diferencas entre maiusculas e minusculas.
+
+A interface esta disponivel em:
+
+```text
+http://localhost:18080/pesquisa
+```
+
+O campo criptografado e `Cliente.email`. Na serializacao de `Model/Cliente.java`, o email e salvo com `XorCipher.encrypt(email)`; na leitura, o sistema chama `XorCipher.decryptIfEncrypted(...)`. A classe `Util/XorCipher.java` aplica XOR byte a byte com chave fixa do projeto e grava o resultado em Base64 com prefixo `XOR1:`.
+
 ## Como compilar e executar
 O runtime disponivel e Java 8; compile para uma pasta de build com compatibilidade Java 8:
 ```powershell
@@ -95,11 +119,13 @@ java -cp out\classes Util.BackupCli
 - `/produtos`: CRUD e listagem ordenada pela Arvore B+.
 - `/cupons`: CRUD e listagem de cupons.
 - `/pedidos`: CRUD, cupom, consulta `Cliente -> Pedidos` e navegacao N:N nos dois sentidos.
+- `/pesquisa`: busca textual por KMP ou Boyer-Moore no nome dos produtos.
 - `/compressao`: backup unico dos dados com Huffman e LZW.
 
 ## Documentacao
 - `docs/RelatorioFaseIII.md`
 - `docs/RelatorioFaseIV.md`
+- `docs/RelatorioFaseV.md`
 - `docs/RelatorioFaseIII.pdf`
 - `docs/ArquiteturaProposta.md`
 - `docs/DER.md`

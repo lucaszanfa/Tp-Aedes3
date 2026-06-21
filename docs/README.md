@@ -3,14 +3,15 @@
 Esta pasta contem a documentacao da **Loja Online** desenvolvida no projeto.
 
 ## Documento principal da entrega
-O arquivo principal desta entrega e `RelatorioFaseIII.pdf`, gerado a partir de `RelatorioFaseIII.html` e mantido tambem em `RelatorioFaseIII.md`. Ele consolida:
-- descricao do problema;
-- requisitos funcionais e nao funcionais;
-- decisoes de projeto;
-- diagramas refinados da fase anterior;
-- detalhes da tabela associativa, indices B+ e relacionamento `N:N`;
-- formulario tecnico obrigatorio da Fase III;
-- instrucoes de execucao e organizacao do repositorio.
+O arquivo principal desta entrega e `RelatorioFaseV.pdf`, gerado a partir de
+`RelatorioFaseV.html` e mantido tambem em `RelatorioFaseV.md`. Ele consolida:
+- link para o GitHub;
+- confirmacao da atualizacao do README;
+- descricao dos algoritmos KMP e Boyer-Moore;
+- integracao da interface de pesquisa;
+- criptografia XOR no campo sensivel;
+- formulario tecnico obrigatorio da fase;
+- instrucoes de compilacao e execucao.
 
 ## Arquivos disponiveis
 - `DescricaoProblema.md`
@@ -34,6 +35,10 @@ O arquivo principal desta entrega e `RelatorioFaseIII.pdf`, gerado a partir de `
 - `DocumentacaoCompleta.md`
   - documentacao consolidada das fases anteriores (historico)
 - `RelatorioFaseIII.md`, `RelatorioFaseIII.html`, `RelatorioFaseIII.pdf`
+  - documentacao da Fase III
+- `RelatorioFaseIV.md`, `RelatorioFaseIV.html`, `RelatorioFaseIV.pdf`
+  - documentacao da Fase IV
+- `RelatorioFaseV.md`, `RelatorioFaseV.html`, `RelatorioFaseV.pdf`
   - documentacao atual e arquivo unico para envio pelo Canvas
 
 ## Observacao

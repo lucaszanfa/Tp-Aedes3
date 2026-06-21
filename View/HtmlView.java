@@ -133,7 +133,7 @@ public final class HtmlView {
             + "    font-weight: bold;\n"
             + "    color: var(--accent-dark);\n"
             + "}\n"
-            + "input {\n"
+            + "input, select {\n"
             + "    width: 100%;\n"
             + "    border: 1px solid var(--border);\n"
             + "    border-radius: 12px;\n"
@@ -229,6 +229,7 @@ public final class HtmlView {
             + "  <a href='/produtos'>Catalogo</a>\n"
             + "  <a href='/cupons'>Cupons</a>\n"
             + "  <a href='/pedidos'>Pedidos</a>\n"
+            + "  <a href='/pesquisa'>Pesquisar por padrao (KMP / BM)</a>\n"
             + "  <a href='/compressao'>Compressao</a>\n"
             + "</nav>\n";
     }

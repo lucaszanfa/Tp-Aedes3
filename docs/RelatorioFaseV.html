@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Loja Online - Relatorio Tecnico - Fase V</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.55; color: #172033; margin: 34px; }
+    h1 { color: #0f2f6e; font-size: 30px; margin-bottom: 4px; }
+    h2 { color: #163f91; border-bottom: 1px solid #c8d7f2; padding-bottom: 4px; margin-top: 28px; }
+    h3 { color: #174ea6; margin-top: 22px; }
+    code, pre { font-family: Consolas, monospace; }
+    pre { background: #f3f6fb; border: 1px solid #c8d7f2; padding: 12px; overflow-wrap: break-word; white-space: pre-wrap; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+    th, td { border: 1px solid #c8d7f2; padding: 8px; text-align: left; vertical-align: top; }
+    th { background: #eaf1ff; }
+    .small { color: #566276; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>Loja Online - Relatorio Tecnico da Fase V</h1>
+  <p class="small">Casamento de padroes com KMP/Boyer-Moore e criptografia XOR.</p>
+
+  <h2>1. Link para o GitHub</h2>
+  <p><strong>Repositorio:</strong> <a href="https://github.com/lucaszanfa/Tp-Aedes3">https://github.com/lucaszanfa/Tp-Aedes3</a></p>
+  <p><strong>Video explicativo da Fase V:</strong> <a href="https://youtu.be/dXa_AAKLjUk">https://youtu.be/dXa_AAKLjUk</a></p>
+
+  <h2>2. Atualizacao do README</h2>
+  <p>O arquivo <code>README.md</code> foi atualizado com o link do repositorio, instrucoes de compilacao e execucao, descricao da rota <code>/pesquisa</code>, descricao dos algoritmos KMP e Boyer-Moore e descricao da criptografia XOR aplicada ao campo <code>Cliente.email</code>.</p>
+
+  <h2>3. Objetivo da fase</h2>
+  <p>Esta fase acrescenta ao sistema dois algoritmos de casamento de padroes, KMP e Boyer-Moore, e criptografia XOR em um campo sensivel. Os recursos foram integrados ao aplicativo web local preservando a arquitetura MVC + DAO, os arquivos binarios, os indices e os CRUDs existentes.</p>
+
+  <h2>4. Arquivos principais</h2>
+  <table>
+    <tr><th>Arquivo</th><th>Responsabilidade</th></tr>
+    <tr><td><code>Util/PatternMatcher.java</code></td><td>Implementa KMP e Boyer-Moore.</td></tr>
+    <tr><td><code>Controller/PesquisaController.java</code></td><td>Aplica o algoritmo escolhido sobre os produtos.</td></tr>
+    <tr><td><code>Main/App.java</code></td><td>Cria a rota <code>/pesquisa</code>, recebe o formulario e exibe resultados.</td></tr>
+    <tr><td><code>View/HtmlView.java</code></td><td>Inclui a opcao de menu "Pesquisar por padrao (KMP / BM)".</td></tr>
+    <tr><td><code>Util/XorCipher.java</code></td><td>Implementa a criptografia e descriptografia XOR.</td></tr>
+    <tr><td><code>Model/Cliente.java</code></td><td>Criptografa o email ao salvar e descriptografa ao ler.</td></tr>
+  </table>
+
+  <h2>5. Interface de pesquisa</h2>
+  <p>A interface fica disponivel em <code>http://localhost:18080/pesquisa</code>. Ela permite escolher KMP ou Boyer-Moore, informar o padrao pesquisado e visualizar os registros encontrados.</p>
+  <pre><code>String algoritmo = pesquisaController.normalizeAlgorithm(data.get("algoritmo"));
+String padrao = data.get("padrao");
+List&lt;Produto&gt; encontrados = pesquisaController.pesquisarProdutosPorNome(algoritmo, padrao);</code></pre>
+
+  <h2>6. Formulario tecnico</h2>
+
+  <h3>1. Qual campo textual foi escolhido para aplicar os algoritmos de casamento de padroes? Por que?</h3>
+  <p>O campo escolhido foi <code>nome</code> da entidade <code>Produto</code>. Ele foi escolhido porque e textual, aparece naturalmente no catalogo da loja e representa uma consulta real para o usuario. Em uma loja online, buscar produtos por parte do nome e uma funcionalidade comum.</p>
+
+  <h3>2. Explique o funcionamento do KMP implementado</h3>
+  <p>O KMP esta no metodo <code>containsKmp</code> da classe <code>Util.PatternMatcher</code>. Primeiro, o algoritmo cria a tabela LPS pelo metodo <code>buildLongestPrefixSuffix</code>. Essa tabela guarda o tamanho do maior prefixo que tambem e sufixo em cada ponto do padrao.</p>
+  <p>Depois, o texto e percorrido com o indice <code>i</code> e o padrao com o indice <code>j</code>. Quando os caracteres coincidem, os dois avancam. Quando ha divergencia, o texto nao volta; se <code>j &gt; 0</code>, o padrao volta para <code>lps[j - 1]</code>. Se <code>j == 0</code>, apenas o texto avanca.</p>
+  <pre><code>j = lps[j - 1];</code></pre>
+
+  <h3>3. Explique o funcionamento do Boyer-Moore implementado</h3>
+  <p>O Boyer-Moore esta no metodo <code>containsBoyerMoore</code> da classe <code>Util.PatternMatcher</code>. A versao implementada usa a heuristica obrigatoria bad character. O metodo <code>buildBadCharacterTable</code> cria uma tabela com a ultima ocorrencia de cada caractere no padrao.</p>
+  <p>A comparacao ocorre da direita para a esquerda. Quando ha divergencia, o algoritmo calcula o deslocamento com base no caractere que causou o erro, garantindo pelo menos uma posicao de avanco.</p>
+  <pre><code>shift += Math.max(1, j - badChar[text.charAt(shift + j)]);</code></pre>
+  <p>A heuristica good suffix nao foi usada porque era opcional no enunciado.</p>
+
+  <h3>4. Descreva como integrou os algoritmos ao sistema.</h3>
+  <p>A integracao foi feita em tres camadas. Em <code>Util.PatternMatcher</code> ficam os algoritmos. Em <code>Controller.PesquisaController</code> fica a regra de pesquisa, que percorre os produtos e aplica o algoritmo sobre <code>Produto.nome</code>. Em <code>Main.App</code> e <code>View.HtmlView</code> fica a interface web.</p>
+  <pre><code>boolean match = "BM".equals(normalizedAlgorithm)
+    ? PatternMatcher.containsBoyerMoore(nome, normalizedPattern)
+    : PatternMatcher.containsKmp(nome, normalizedPattern);</code></pre>
+
+  <h3>5. Quais dificuldades encontrou na implementacao dos dois algoritmos?</h3>
+  <p>No KMP, a principal dificuldade foi construir corretamente a tabela LPS para tratar prefixos e sufixos parciais. No Boyer-Moore, o cuidado principal foi montar a tabela bad character e garantir que o deslocamento nunca fosse zero ou negativo. Outra dificuldade foi integrar os algoritmos sem quebrar o padrao MVC, mantendo algoritmos em <code>Util</code>, regra de pesquisa em <code>Controller</code> e interface na camada web.</p>
+
+  <h3>6. Qual campo foi utilizado na criptografia?</h3>
+  <p>O campo utilizado foi <code>email</code> da entidade <code>Cliente</code>, por ser um dado pessoal e sensivel.</p>
+
+  <h3>7. Qual foi o metodo utilizado na criptografia?</h3>
+  <p>Foi usada criptografia XOR, implementada em <code>Util.XorCipher</code>. O texto e convertido para bytes em UTF-8, cada byte e combinado com a chave usando o operador XOR (<code>^</code>) e o resultado e salvo em Base64 com o prefixo <code>XOR1:</code>.</p>
+  <pre><code>output[i] = (byte) (input[i] ^ KEY[i % KEY.length]);</code></pre>
+  <p>Na gravacao do cliente:</p>
+  <pre><code>values[1] = XorCipher.encrypt(email);</code></pre>
+  <p>Na leitura do cliente:</p>
+  <pre><code>email = values.length &gt; 1 ? XorCipher.decryptIfEncrypted(values[1]) : "";</code></pre>
+
+  <h2>7. Como compilar e executar</h2>
+  <p>Compilar:</p>
+  <pre><code>New-Item -ItemType Directory -Force out\classes | Out-Null
+$sources = Get-ChildItem -Recurse -Filter *.java -Path Controller,DAO,Main,Model,Util,View | ForEach-Object { $_.FullName }
+javac --release 8 -d out\classes $sources</code></pre>
+  <p>Executar:</p>
+  <pre><code>java -cp out\classes Main.App</code></pre>
+  <p>Abrir <code>http://localhost:18080</code> ou diretamente <code>http://localhost:18080/pesquisa</code>.</p>
+
+  <h2>8. Video explicativo</h2>
+  <p><strong>Video da Fase V:</strong> <a href="https://youtu.be/dXa_AAKLjUk">https://youtu.be/dXa_AAKLjUk</a></p>
+  <p>O video explicativo mostra <code>Util/PatternMatcher.java</code>, <code>Controller/PesquisaController.java</code>, a rota <code>/pesquisa</code>, <code>Util/XorCipher.java</code> e a serializacao do email em <code>Model/Cliente.java</code>.</p>
+
+  <h2>9. Conclusao</h2>
+  <p>A fase foi integrada ao aplicativo com os dois algoritmos de casamento de padroes pedidos e com criptografia XOR em campo sensivel. A busca usa o campo <code>Produto.nome</code>, a interface permite escolher entre KMP e Boyer-Moore, e os registros encontrados sao retornados ao usuario pela tela web. A criptografia foi aplicada ao email do cliente durante a persistencia binaria, com descriptografia automatica na leitura.</p>
+</body>
+</html>

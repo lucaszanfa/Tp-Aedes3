@@ -1,6 +1,7 @@
 package Model;
 
 import Util.BinaryStringIO;
+import Util.XorCipher;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -78,7 +79,7 @@ public class Cliente implements Registro {
         dos.writeInt(id);
         String[] values = new String[2 + telefones.length];
         values[0] = nome;
-        values[1] = email;
+        values[1] = XorCipher.encrypt(email);
         System.arraycopy(telefones, 0, values, 2, telefones.length);
         BinaryStringIO.writeStringBlock(dos, values);
         return baos.toByteArray();
@@ -92,7 +93,7 @@ public class Cliente implements Registro {
         id = dis.readInt();
         String[] values = BinaryStringIO.readStringBlock(dis);
         nome = values.length > 0 ? values[0] : "";
-        email = values.length > 1 ? values[1] : "";
+        email = values.length > 1 ? XorCipher.decryptIfEncrypted(values[1]) : "";
         if (values.length > 2) {
             telefones = Arrays.copyOfRange(values, 2, values.length);
         } else {

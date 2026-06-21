@@ -3,6 +3,7 @@ package Main;
 import Controller.ClienteController;
 import Controller.CupomController;
 import Controller.PedidoController;
+import Controller.PesquisaController;
 import Controller.ProdutoController;
 import DAO.ClienteDAO;
 import DAO.CupomDAO;
@@ -46,6 +47,7 @@ public class App {
         ProdutoController produtoController = new ProdutoController(produtoDAO, pedidoProdutoDAO);
         CupomController cupomController = new CupomController(cupomDAO);
         PedidoController pedidoController = new PedidoController(pedidoDAO, clienteDAO, produtoDAO, cupomDAO, pedidoProdutoDAO);
+        PesquisaController pesquisaController = new PesquisaController(produtoDAO);
 
         HttpServer server = HttpServer.create(new InetSocketAddress(18080), 0);
         server.createContext("/", ex -> {
@@ -527,6 +529,49 @@ public class App {
             return "__REDIRECT__pedidosProduto=" + encode(descricao);
         }));
 
+        server.createContext("/pesquisa", ex -> {
+            if ("POST".equals(ex.getRequestMethod())) {
+                handlePost(ex, "/pesquisa", data -> {
+                    String algoritmo = pesquisaController.normalizeAlgorithm(data.get("algoritmo"));
+                    String padrao = data.get("padrao");
+                    List<Produto> encontrados = pesquisaController.pesquisarProdutosPorNome(algoritmo, padrao);
+                    return "__REDIRECT__algoritmo=" + encode(algoritmo)
+                        + "&padrao=" + encode(padrao)
+                        + "&result=" + encode(formatSearchResult(algoritmo, padrao, encontrados));
+                });
+                return;
+            }
+            if (!"GET".equals(ex.getRequestMethod())) {
+                sendText(ex, 405, "Metodo nao permitido");
+                return;
+            }
+            String msg = query(ex).getOrDefault("msg", "");
+            String algoritmo = query(ex).getOrDefault("algoritmo", "KMP");
+            String padrao = query(ex).getOrDefault("padrao", "");
+            String result = query(ex).getOrDefault("result", "");
+            sendHtml(ex, HtmlView.page("Pesquisa", HtmlView.nav() + msgBox(msg)
+                + "<section class='hero'>"
+                + "<span class='eyebrow'>Casamento de padroes</span>"
+                + "<h1>Pesquisar por padrao (KMP / BM)</h1>"
+                + "<p>Escolha KMP ou Boyer-Moore para procurar uma string no campo textual nome dos produtos cadastrados.</p>"
+                + "</section>"
+                + "<div class='grid'>"
+                + "<div class='card'>"
+                + "<h2>Pesquisa</h2>"
+                + "<form method='post' action='/pesquisa'>"
+                + "<label>Algoritmo</label>"
+                + "<select name='algoritmo'>"
+                + "<option value='KMP'" + ("KMP".equalsIgnoreCase(algoritmo) ? " selected" : "") + ">KMP</option>"
+                + "<option value='BM'" + ("BM".equalsIgnoreCase(algoritmo) ? " selected" : "") + ">Boyer-Moore (bad character)</option>"
+                + "</select>"
+                + "<label>Padrao</label><input name='padrao' value='" + escape(padrao) + "' required>"
+                + "<button type='submit'>Pesquisar</button>"
+                + "</form>"
+                + "</div>"
+                + "</div>"
+                + (!result.isEmpty() ? "<div class='card'><h2>Registros encontrados</h2>" + result + "</div>" : "")));
+        });
+
         server.createContext("/compressao", ex -> {
             if (!"GET".equals(ex.getRequestMethod())) {
                 sendText(ex, 405, "Metodo nao permitido");
@@ -663,6 +708,26 @@ public class App {
             + "<tr><th>Interpretacao</th><td>" + escape(result.getInterpretation()) + "</td></tr>"
             + "<tr><th>Integridade</th><td>" + (result.isVerified() ? "Backup descompactado e conferido byte a byte." : "Falha na verificacao.") + "</td></tr>"
             + "</table>";
+    }
+
+    private static String formatSearchResult(String algoritmo, String padrao, List<Produto> produtos) {
+        StringBuilder html = new StringBuilder();
+        html.append("<p class='lede'>Algoritmo: ").append(escape(algoritmo))
+            .append(" | Padrao: ").append(escape(padrao))
+            .append(" | Total: ").append(produtos.size()).append("</p>");
+        if (produtos.isEmpty()) {
+            html.append("<p>Nenhum produto encontrado.</p>");
+            return html.toString();
+        }
+        html.append("<table><tr><th>ID</th><th>Nome</th><th>Preco</th><th>Estoque</th></tr>");
+        for (Produto produto : produtos) {
+            html.append("<tr><td>").append(produto.getId()).append("</td><td>")
+                .append(escape(produto.getNome())).append("</td><td>")
+                .append(produto.getPreco()).append("</td><td>")
+                .append(produto.getEstoque()).append("</td></tr>");
+        }
+        html.append("</table>");
+        return html.toString();
     }
 
     private static String formatBytes(long bytes) {
